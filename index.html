@@ -874,22 +874,36 @@ colliderTag='living';
   // rug + center table
   /* Layout logic: you enter from the east (MD at z 3.62–4.66), so the north strip
      stays as the circulation spine to the three bedroom/toilet doors. The plan's
-     CONSOLE (x≈3.35) screens the balcony route from the seating, which sits east
-     of it facing the TV on the media wall. */
-  const rug = new THREE.Mesh(new THREE.BoxGeometry(2.3,.02,1.6), M.rug);
-  rug.position.set(4.40,.012,5.15); rug.receiveShadow=true; F.add(rug);
-  // round travertine coffee table on a plinth base — curves over corners
-  cyl(F, M.oakF, .27,.34,.30, 4.40,.15,5.76, {seg:24});
-  cyl(F, M.stone2, .54,.54,.075, 4.40,.335,5.76, {seg:32});
-  cyl(F, M.stone2, .50,.54,.03, 4.40,.295,5.76, {seg:32, cast:false});
-  addCollider(3.86,4.94,5.22,6.30);
-  // 3-seater sofa floats facing the TV, with a 1.2 m circulation lane behind it
-  // along the north wall so the study / c.toilet / bedroom-2 doors stay reachable
-  // 3-seater east of the console, back to the north, facing the TV
-  /* 2026 "fat furniture": deep, ballooned, softly rounded — built from capsules
-     rather than boxes so every edge reads curved. */
-  const sofa = new THREE.Group(); sofa.position.set(4.40,0,4.86); F.add(sofa);
-  const W2_=1.66, D2_=1.00;
+     CONSOLE screens the balcony route from the seating, which sits east of it
+     facing the TV on the media wall.
+
+     DEPTH BUDGET — wall A face 3.315 → media wall face 6.515 is only 3.20 m, and
+     every piece has to fit inside it without eating the door lane:
+        1.005  circulation lane behind the sofa (bedroom.2 / c.toilet / study)
+        0.940  sofa (slim 0.86 shell, arms bulge to 0.94)
+        0.295  shin gap
+        0.432  oval coffee table
+        0.270  gap
+        0.260  floating credenza (off the floor, so the floor stays clear)
+     That is why the sofa CANNOT go further north — 4.32 is the hard limit before
+     the bedroom.2 lane fails — and why the TV is a 55" and not a 65": the throw
+     this room allows is ~1.55 m to the seated eye. */
+  const rug = new THREE.Mesh(new THREE.BoxGeometry(2.44,.02,1.50), M.rug);
+  rug.position.set(4.42,.012,5.30); rug.receiveShadow=true; F.add(rug);
+  // oval travertine coffee table on a matching plinth — 1.20 × 0.43, so it clears
+  // the sofa in front and the credenza behind instead of jamming into both
+  { const b = cyl(F, M.oakF, .30,.38,.30, 4.42,.15,5.77, {seg:28}); b.scale.z=.42;
+    const t = cyl(F, M.stone2, .60,.60,.075, 4.42,.335,5.77, {seg:40}); t.scale.z=.36;
+    const l = cyl(F, M.stone2, .56,.60,.03, 4.42,.295,5.77, {seg:40, cast:false}); l.scale.z=.36; }
+  addCollider(3.82,5.02,5.55,5.99);
+  // 3-seater, back to the north, facing the TV. Its back sits at z 4.33 — the
+  // furthest north it can go before the bedroom.2 doorway lane fails — so the
+  // 1.0 m spine along wall A stays walkable to all three doors.
+  /* 2026 "fat furniture": softly rounded, built from capsules rather than boxes
+     so every edge reads curved — but on a SLIM 0.86 shell, not the deep 1.00,
+     because this room only has 3.20 m to play with. */
+  const sofa = new THREE.Group(); sofa.position.set(4.42,0,4.79); F.add(sofa);
+  const W2_=1.80, D2_=0.86;
   box(sofa, M.fabric, W2_-.36, .46, D2_, 0,.25,0, {cast:true});               // seat block
   for(const sx of [-1,1])                                                      // rounded seat ends
     cyl(sofa, M.fabric, .23,.23, D2_, sx*(W2_/2-.18), .25, 0, {rx:Math.PI/2, seg:20});
@@ -901,43 +915,52 @@ colliderTag='living';
   // barrel arms
   for(const sx of [-1,1]){
     cyl(sofa, M.fabric, .19,.19, D2_-.10, sx*(W2_/2-.18), .60, .03, {rx:Math.PI/2, seg:20});
-    sph(sofa, M.fabric, .19, sx*(W2_/2-.18), .60, D2_/2-.08);
+    sph(sofa, M.fabric, .19, sx*(W2_/2-.18), .60, D2_/2-.15);
   }
-  // loose cushions in clay + cream
+  // loose cushions in clay + cream, pushed out to the arms on the wider shell
   for(let i=0;i<2;i++){
-    const cx=-.36+i*.72;
-    box(sofa, i===0?M.cushion:M.pillow, .50,.17,.46, cx,.58,.08,{ry:(i-.5)*.12});
-    cyl(sofa, i===0?M.cushion:M.pillow, .085,.085,.48, cx,.66,.08,{rz:Math.PI/2, seg:14, cast:false});
+    const cx=-.52+i*1.04;
+    box(sofa, i===0?M.cushion:M.pillow, .50,.17,.44, cx,.58,.06,{ry:(i-.5)*.12});
+    cyl(sofa, i===0?M.cushion:M.pillow, .085,.085,.48, cx,.66,.06,{rz:Math.PI/2, seg:14, cast:false});
   }
-  addCollider(3.52,5.28,4.33,5.39);
-  // two armchairs on east side facing west
-  // armchair in the SE pocket, angled at the TV — clear of the entry lane
-  // (z 3.75–4.55) and of the dining passage mouth (z ≥ 5.72)
+  addCollider(3.47,5.37,4.32,5.26);
+  // armchair angled at the TV from the east pocket — well clear of the entry lane
+  // (z 3.75–4.55) and of the sofa's east arm, with 0.78 m between the two
   {
-    const zz = 5.05;
-    const ch = new THREE.Group(); ch.position.set(6.68,0,zz); ch.rotation.y=-Math.PI/2+.45; F.add(ch);
+    const zz = 5.55;
+    const ch = new THREE.Group(); ch.position.set(6.55,0,zz); ch.rotation.y=-1.16; F.add(ch);
     box(ch, M.fabric2, .82,.4,.82, 0,.2,0); box(ch, M.fabric2, .82,.5,.2, 0,.58,-.31);
     box(ch, M.fabric2, .18,.5,.82, -.32,.38,0); box(ch, M.fabric2, .18,.5,.82, .32,.38,0);
     box(ch, M.cushion2, .40,.1,.40, 0,.45,.04, {cast:false});
-    addCollider(6.28,7.08,zz-.44,zz+.44);
+    addCollider(6.15,6.95,zz-.44,zz+.44);
     cyl(F, M.brass, .018,.018,1.3, 7.02,.65,5.72);
     cyl(F, M.cushion2, .13,.16,.24, 7.02,1.42,5.72,{seg:12});
   }
-  // media wall dressing — TV centred on the sofa axis (x 4.85)
-  box(F, M.black, 1.42,.82,.045, 4.40,1.42, ZB0-.03);                  // TV
-  box(F, M.screen, 1.34,.74,.01, 4.40,1.42, ZB0-.055);
-  box(F, M.walnut, 1.80,.42,.42, 4.32,.21, ZB0-.23, {solid:true});     // media console (kept west of 5.25)
-  box(F, M.brass, 1.80,.02,.42, 4.32,.43, ZB0-.23,{cast:false});
+  // media wall dressing — 55" set centred on the sofa axis (x 4.42). Sized to the
+  // 1.55 m throw this room allows; a 65" here is what made it feel jammed.
+  box(F, M.black, 1.24,.72,.042, 4.42,1.25, ZB0-.03);                  // TV
+  box(F, M.screen, 1.16,.655,.01, 4.42,1.25, ZB0-.055);
+  // FLOATING credenza (0.32–0.68 off the floor) instead of a 0.42-deep floor unit,
+  // so nothing stands in the 0.27 m strip in front of the wall
+  // light oak against the dark fluted panel, so the float actually reads
+  box(F, M.oakF, 1.56,.36,.26, 4.42,.50, ZB0-.13, {solid:true});
+  box(F, M.brass, 1.60,.02,.28, 4.42,.685, ZB0-.13,{cast:false});
+  for(let i=0;i<3;i++) box(F, M.brass, .12,.014,.02, 4.42+(i-1)*.46,.50, ZB0-.262,{cast:false});
+  box(F, M.brass, 1.52,.015,.02, 4.42,.318, ZB0-.20,{cast:false});   // brass shadow-gap under the float
   for(let i=0;i<12;i++) box(F, M.frame, .06,2.3,.02, 3.02+i*.19, 1.25, ZB0-.005, {cast:false});
   // plant tucked at the west end of the media wall, out of the TV sight line
   cyl(F, M.potB, .14,.11,.32, 3.10,.16, ZB0-.30);
   sph(F, M.green, .17, 3.10,.55, ZB0-.30, 1,1.25,1);
-  // freestanding CONSOLE (plan: x≈3.35, z≈5.2) — screens the balcony route
-  box(F, M.walnut, .34, .88, 1.45, 3.33, .44, 5.20, {solid:true});
-  box(F, M.brass, .38, .03, 1.49, 3.33, .895, 5.20, {cast:false});
-  for(let i=0;i<2;i++) box(F, M.frame, .01, .74, .012, 3.50, .46, 4.86+i*.70, {cast:false});
-  cyl(F, M.pot, .09,.07,.16, 3.33,.97,4.68); sph(F, M.green, .12, 3.33,1.14,4.68,1,1.1,1);
-  cyl(F, M.brass, .015,.015,.34, 3.33,1.06,5.72); cyl(F, M.cushion2, .12,.15,.22, 3.33,1.32,5.72,{seg:12});
+  // freestanding CONSOLE (on the plan at x≈3.35) — dropped from 0.88 to arm height
+  // and slimmed to 0.30 × 1.20. At 0.88 it stood in the middle of a 3.20 m room
+  // like a partition; at 0.44 it reads as a bench beside the sofa and the west
+  // third of the hall stays open for the balcony / kitchen-arch walk.
+  box(F, M.walnut, .30, .44, 1.20, 3.16, .22, 5.15, {solid:true});
+  box(F, M.brass, .34, .03, 1.24, 3.16, .455, 5.15, {cast:false});
+  for(let i=0;i<2;i++) box(F, M.frame, .01, .32, .012, 3.31, .23, 4.85+i*.60, {cast:false});
+  cyl(F, M.pot, .09,.07,.16, 3.16,.55,4.75); sph(F, M.green, .12, 3.16,.72,4.75,1,1.1,1);
+  cyl(F, M.brass, .15,.15,.02, 3.16,.48,5.55,{seg:20, cast:false});   // low brass bowl
+  sph(F, M.cushion2, .10, 3.16,.52,5.55, 1,.55,1);
   // entry side: shoe console + mirror
   box(F, M.walnut, .35,.95,.9, 7.0,.475,3.3, {solid:true});
   box(F, M.brass, .02,.7,.5, 7.2,1.65,3.3,{cast:false});
@@ -1556,15 +1579,15 @@ colliderTag='decor';
   };
 
   // living — console + coffee table + corners
-  books(3.20, .895, 5.05, 5, .12);
-  vase(3.33, .895, 5.60, .20, MS.ceramicD);
+  books(3.08, .455, 4.98, 5, .12);
+  vase(3.16, .455, 5.30, .18, MS.ceramicD);
   potPlant(6.98, 6.28, .88, true);                       // fiddle-leaf by the media wall
-  box(F, MS.brassW, .34,.012,.24, 4.40,.395, 5.72, {cast:false});   // tray on the coffee table
-  vase(4.30, .407, 5.72, .13, MS.ceramic); stems(4.30,.53,5.72,5);
-  books(4.52, .395, 5.80, 3, -.3);
-  // media console styling
-  vase(3.55, .43, ZB0-.23, .17, MS.ceramicD);
-  books(4.62, .43, ZB0-.23, 4, .08);
+  box(F, MS.brassW, .34,.012,.22, 4.42,.395, 5.77, {cast:false});   // tray on the coffee table
+  vase(3.98, .407, 5.77, .13, MS.ceramic); stems(3.98,.53,5.77,5);   // off the TV sight line
+  books(4.72, .395, 5.80, 3, -.3);
+  // floating credenza styling (top at 0.695)
+  vase(3.92, .70, ZB0-.13, .16, MS.ceramicD);
+  books(4.80, .70, ZB0-.13, 4, .08);
   // dining table centrepiece
   vase(3.95, .79, 7.80, .16, MS.ceramic); stems(3.95,.94,7.80,6);
   // kitchen counter accents
@@ -1753,9 +1776,9 @@ colliderTag='decor';
   })();
 
   /* ---- 7. round nesting side tables + a curved bench ---- */
-  cyl(F, M.stone2, .19,.19,.045, 6.05, .50, 5.62, {seg:24});
-  cyl(F, M.brass,  .016,.016,.48, 6.05, .24, 5.62, {seg:10});
-  cyl(F, M.brass,  .17,.17,.02,  6.05, .012, 5.62, {seg:20, cast:false});
+  cyl(F, M.stone2, .19,.19,.045, 5.80, .50, 6.15, {seg:24});
+  cyl(F, M.brass,  .016,.016,.48, 5.80, .24, 6.15, {seg:10});
+  cyl(F, M.brass,  .17,.17,.02,  5.80, .012, 6.15, {seg:20, cast:false});
   // curved upholstered bench under the gallery wall
   {
     const bx=6.35, bz=3.62;
@@ -2959,7 +2982,7 @@ const TOUR = [
   { x:7.30, z:4.14, yaw:90 },
   /* 2 TV UNIT / HALL ───────────────────────────────────── */
   { x:6.10, z:4.20, yaw:150, cap:['The hall','19\'0" × 10\'6" — the media wall sits on the old flat line'], dwell:3.0 },
-  { x:5.30, z:4.02, yaw:200, cap:['TV unit','Fluted teak, arched niches, travertine and brass'], dwell:3.2 },
+  { x:5.30, z:4.02, yaw:168, cap:['TV unit','Fluted teak, floating credenza, travertine and brass'], dwell:3.2 },
   { x:3.30, z:4.02, yaw:230, cap:['The jhula','Teak swing on brass chains, in the hall'], dwell:3.0 },
   /* 3 BEDROOM 2 (in → look → out) ──────────────────────── */
   { x:4.20, z:3.85, yaw:20 },

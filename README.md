@@ -49,6 +49,13 @@ end of Tower B**, so the balcony looks west over the tennis court, the water
 body, the fountain and the clubhouse, and north over the football ground.
 Compass in model space: `-x` west, `+x` east, `-z` north, `+z` south.
 
+Furniture is laid out to the same dimensions, and where the room is tight the
+layout says so rather than pretending otherwise. The living room is only 3.20 m
+from the door wall to the media wall, and the sofa's back cannot come north of
+z 4.32 without closing the walking lane to the bedroom / toilet / study doors —
+so the depth left in front is 2.19 m, and the TV is sized to the ~1.55 m throw
+that allows (55", on a floating credenza) rather than to the width of the wall.
+
 The master plan is not dimensioned, so amenity positions are scaled off the
 drawing (≈0.21 m per drawing pixel, which lands the site at 12.4 acres against
 the published 12.5) — the arrangement is right, the metre-level positions are
