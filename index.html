@@ -1838,14 +1838,19 @@ const SM = {
 {
   const g = new THREE.Mesh(new THREE.BoxGeometry(900,1,900), M.grass);
   M.grass.map.repeat.set(180,180);
-  g.position.set(-60, GY-.5, 20); g.receiveShadow=true; siteG.add(g);
+  g.position.set(-20, GY-.5, -6); g.receiveShadow=true; siteG.add(g);
 }
 
-/* ---------------- OUR TOWER (B) — shell around the flat ---------------- */
+/* ---------------- OUR TOWER (B) — shell around the flat ----------------
+   From the landscape master plan: our flat is the WEST-face unit at the
+   NORTH end of Tower B. So the slab runs south from us, the corridor and
+   the east-face units sit at +x, and the balconies look west across the
+   tennis court, the water body and the clubhouse.
+   Model compass:  -x = west   +x = east   -z = north   +z = south        */
 {
   const topY = (24-FLOOR_NO+1)*FLOOR_H, botY = GY;
-  const TW = 34, TD = 46, TX = 24.5, TZ = 6.5;        // main slab east of the flat
-  const colW = 8.2, colX = 3.4;                        // our own column
+  const TW = 10.4, TD = 62, TX = 12.4, TZ = 26;   // corridor + east-face units
+  const colW = 8.2, colX = 3.4;                    // our own west-face column
   const yBelow = -0.30, yAbove = CEIL + 0.30;
 
   // everything at or above our floor lifts away in overview, like the roof
@@ -1861,7 +1866,7 @@ const SM = {
   // at / above our floor — hidden in overview
   slab(towerUpG, TW, topY-yBelow, TD, TX, yBelow, TZ);
   slab(towerUpG, colW, topY-yAbove, TD, colX, yAbove, TZ);
-  // neighbouring units on our own floor, north and south of the flat
+  // neighbouring units on our own floor: a short return north of us, the rest south
   const fH = CEIL + .60;
   const flank = (z0,z1) => slab(towerUpG, colW, fH, z1-z0, colX, -0.30, (z0+z1)/2);
   flank(TZ - TD/2, -0.20);
@@ -1887,273 +1892,571 @@ const SM = {
     put(M.railing, .06,1.0,3.3, .02, y+.5, 4.9);
     put(M.railing, .06,1.0,3.3, .02, y+.5, 8.2);
   }
-  // podium / parking deck at the base
-  sbox(SM.podium, 46,7,58, 22, 3.5, 6.5, {cast:true});
+  // podium / parking deck at the base, flush with the west face
+  sbox(SM.podium, 22, 7, 70, 10, 3.5, 26, {cast:true});
+  sbox(SM.paver,  23, .3, 71, 10, 7.15, 26, {cast:false});   // podium deck
+  // tower entry (74) canopy + podium staircase (10) + entry/exit ramp (12)
+  sbox(SM.roofM, 9,.5,7, -3.5, 7.9, 10, {cast:true});
+  for(const pz of [7.2,12.8]) scyl(SM.roofM,.16,.16,7.6, -6.5, 3.8, pz, 8);
+  for(let i=0;i<14;i++) sbox(SM.stone, 4.4,.52,.95, -3.0, .26+i*.50, 20.5+i*.95, {cast:false});
+  { const r = sbox(SM.podium, 7,.5,26, -4.5, 3.6, 48, {cast:false}); r.rotation.x = -.265; }
 }
 
-/* ---------------- TOWER A (north) & TOWER C (south, phase 2) ---------------- */
+/* ---------------- TOWER A (south-east) & TOWER C (north-east) ---------------- */
 function otherTower(cx, cz, w, d, floors, label){
   const h = floors*FLOOR_H;
   const t = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), SM.tower);
   t.position.set(cx, GY + h/2, cz); t.castShadow=true; siteG.add(t);
   sbox(SM.towerT, w+1.2, 1.8, d+1.2, cx, h+.9, cz);
-  sbox(SM.podium, w+10, 7, d+10, cx, 3.5, cz, {cast:true});
+  sbox(SM.podium, w+8, 7, d+8, cx, 3.5, cz, {cast:true});
+  sbox(SM.paver,  w+9, .3, d+9, cx, 7.15, cz, {cast:false});
   amen(label, floors+' floors · part of the 3-tower masterplan', cx, cz, h+6);
 }
-otherTower(26, -78, 32, 42, 25, 'TOWER A');
-otherTower(26, 108, 30, 40, 25, 'TOWER C');
+otherTower(88,  40, 30, 68, 25, 'TOWER A');
+otherTower(66, -48, 60, 26, 25, 'TOWER C');
 
-/* ---------------- PLATINUM OASIS CLUBHOUSE (50,000 sqft) ---------------- */
-{
-  const x0=-78, x1=-16, z0=6, z1=48;
-  sbox(SM.paver, x1-x0+16, .3, z1-z0+16, (x0+x1)/2, .15, (z0+z1)/2, {cast:false});
-  // three stacked storeys, stepping back
-  const levels = [[x0,z0,x1,z1,0,5.6],[x0+4,z0+3,x1-4,z1-3,5.6,5.4],[x0+12,z0+7,x1-14,z1-7,11,5.0]];
-  for(const [a,b,c,d,y,hh] of levels){
-    sbox(SM.club, c-a, hh, d-b, (a+c)/2, y+hh/2+.3, (b+d)/2, {cast:true});
-    // glazing band
-    sbox(SM.clubGl, c-a+.3, hh*.5, .25, (a+c)/2, y+hh*.55+.3, b-.05, {cast:false});
-    sbox(SM.clubGl, .25, hh*.5, d-b+.3, a-.05, y+hh*.55+.3, (b+d)/2, {cast:false});
-    sbox(SM.roofM, c-a+1.2, .5, d-b+1.2, (a+c)/2, y+hh+.55, (b+d)/2, {cast:false});
-  }
-  // entrance canopy + columns facing our tower
-  sbox(SM.roofM, 16,.4,7, -30, 5.2, z1+3.2, {cast:true});
-  for(const px of [-37,-30,-23]) scyl(SM.club, .35,.35,5, px, 2.5, z1+6, 10);
-  // rooftop deck bits
-  for(let i=0;i<6;i++) scyl(SM.petal2, 1.5,1.5,.12, -60+i*7, 16.4, 20, 8);
-  amen('PLATINUM OASIS CLUBHOUSE', '50,000 sqft · gym · squash · virtual golf · mini theatre', -47, 27, 24);
-}
+/* ---------------- amenity palette, read off the project renders ---------------- */
+const AM = {
+  steelB : new THREE.MeshStandardMaterial({ color:0x23262a, roughness:.45, metalness:.55 }),
+  glassC : new THREE.MeshStandardMaterial({ color:0x6f97a8, roughness:.10, metalness:.55,
+                                            transparent:true, opacity:.62, side:THREE.DoubleSide }),
+  clubW  : new THREE.MeshStandardMaterial({ color:0xeae3d6, roughness:.72 }),
+  deckT  : new THREE.MeshStandardMaterial({ color:0xa9743f, roughness:.86 }),
+  slatD  : new THREE.MeshStandardMaterial({ color:0x4a4d52, roughness:.92 }),
+  slatL  : new THREE.MeshStandardMaterial({ color:0xd7d3ca, roughness:.92 }),
+  water  : new THREE.MeshStandardMaterial({ color:0x38b0d8, roughness:.10, metalness:.20 }),
+  waterD : new THREE.MeshStandardMaterial({ color:0x1d7fa5, roughness:.12, metalness:.20 }),
+  jet    : new THREE.MeshStandardMaterial({ color:0xeaf8ff, transparent:true, opacity:.55,
+                                            emissive:0xdff4ff, emissiveIntensity:.40 }),
+  lawnBr : new THREE.MeshStandardMaterial({ color:0x63a83c, roughness:.95 }),
+  pink   : new THREE.MeshStandardMaterial({ color:0xd85f86, roughness:.92 }),
+  yellow : new THREE.MeshStandardMaterial({ color:0xe8c93c, roughness:.92 }),
+  purple : new THREE.MeshStandardMaterial({ color:0x9b6bb0, roughness:.92 }),
+};
 
-/* ---------------- SWIMMING POOL + TODDLER POOL + DECK ---------------- */
-{
-  pad(SM.deck, -84, -34, -10, 2);
-  const pool = sbox(SM.water2, 42, .5, 16, -50, .5, -14);      // 42 × 16 m main pool
-  sbox(SM.waterS, 12, .5, 7, -22, .5, -26);                    // toddler pool
-  sbox(SM.paver, 46,.16,20, -50, .78, -14, {cast:false});
-  pool.position.y = GY + .55;
-  // lane lines
-  for(let i=1;i<6;i++) sbox(M.white, 42,.02,.18, -50, .82, -21.5+i*2.6, {cast:false});
-  // loungers + parasols along the north edge
-  for(let i=0;i<9;i++){
-    const px = -76 + i*7;
-    sbox(M.white, 2.0,.25,.9, px, .95, -5.5, {cast:true});
-    sbox(M.white, 2.0,.8,.12, px-.7, 1.4, -5.9, {cast:false, ry:.0});
-    if(i%3===1){ scyl(SM.stone, .07,.07,2.6, px+2.4, 1.9, -4.6, 8);
-                 scyl(SM.petal2, 2.0, 2.0, .1, px+2.4, 3.2, -4.6, 8); }
+/* chevron / slat paving — the signature ground pattern in the renders */
+function slatPaving(x0,z0,x1,z1, along='x'){
+  sbox(AM.slatL, x1-x0, .10, z1-z0, (x0+x1)/2, .05, (z0+z1)/2, {cast:false});
+  const n = Math.floor((along==='x' ? x1-x0 : z1-z0) / 1.30);
+  for(let i=0;i<n;i++){
+    if(along==='x') sbox(AM.slatD, .55,.11,z1-z0, x0+.5+i*1.30, .055, (z0+z1)/2, {cast:false});
+    else            sbox(AM.slatD, x1-x0,.11,.55, (x0+x1)/2, .055, z0+.5+i*1.30, {cast:false});
   }
-  // pool-side cabana
-  sbox(SM.club, 9,3.2,6, -88, 1.9, -14, {cast:true});
-  sbox(SM.roofM, 10,.4,7, -88, 3.7, -14, {cast:false});
-  amen('SWIMMING POOL', 'lap pool · toddler pool · sun deck', -50, -14, 7);
 }
-
-/* ---------------- SPORTS ZONE (west / north-west) ---------------- */
-// Tennis court
-{
-  const cx=-120, cz=-46;
-  sbox(SM.court, 36,.14,18, cx, .1, cz, {cast:false});
-  sbox(M.white, 23.8,.02,.1, cx, .19, cz, {cast:false});
-  for(const dz of [-5.5,5.5]) sbox(M.white, 23.8,.02,.1, cx, .19, cz+dz, {cast:false});
-  for(const dx of [-11.9,11.9]) sbox(M.white, .1,.02,11, cx+dx, .19, cz, {cast:false});
-  sbox(SM.net, 12,1.07,.06, cx, .74, cz, {cast:false});
-  for(let i=0;i<26;i++){ sbox(SM.hedge, .1,3.4,.1, cx-18+i*1.44, 1.8, cz-9.2, {cast:false});
-                         sbox(SM.hedge, .1,3.4,.1, cx-18+i*1.44, 1.8, cz+9.2, {cast:false}); }
-  amen('TENNIS COURT', 'floodlit · full-size', cx, cz, 6);
-}
-// Basketball court
-{
-  const cx=-120, cz=-12;
-  sbox(SM.courtB, 28,.14,15, cx, .1, cz, {cast:false});
-  sbox(M.white, 27,.02,.1, cx, .19, cz, {cast:false});
-  for(const dx of [-13.2,13.2]){
-    scyl(SM.stone, .11,.11,3.5, cx+dx, 1.9, cz, 8);
-    sbox(M.white, .1,1.05,1.8, cx+dx*0.92, 3.5, cz, {cast:false});
-    sbox(SM.stone, .5,.05,.5, cx+dx*0.86, 3.25, cz, {cast:false});
+/* colourful mosaic art wall on the tower bases */
+function mosaicWall(x,z,w,h,ry){
+  const cols=[AM.pink, AM.yellow, AM.purple, SM.club, AM.lawnBr, SM.roofM];
+  const g=new THREE.Group(); g.position.set(x, GY, z); g.rotation.y=ry||0; siteG.add(g);
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,.30), SM.roofM);
+  m.position.set(0,h/2,0); m.castShadow=true; g.add(m);
+  for(let i=0;i<26;i++){
+    const cw=.6+Math.abs(Math.sin(i*2.7))*1.5, ch=.5+Math.abs(Math.cos(i*1.9))*1.4;
+    const px=-w/2+.4+(i%7)*(w-.8)/6, py=.5+Math.floor(i/7)*(h-1)/3.2;
+    const t=new THREE.Mesh(new THREE.BoxGeometry(cw,ch,.05), cols[i%cols.length]);
+    t.position.set(px,py,-.17); g.add(t);
   }
-  amen('BASKETBALL COURT', 'half + full court play', cx, cz, 6);
 }
-// Volleyball
-{
-  const cx=-120, cz=16;
-  sbox(SM.sand, 18,.14,9, cx, .1, cz, {cast:false});
-  sbox(SM.net, 9,1.0,.05, cx, .8, cz, {cast:false});
-  for(const dx of [-4.6,4.6]) scyl(SM.stone,.08,.08,2.6, cx+dx,1.4,cz,8);
-  amen('VOLLEYBALL', 'sand court', cx, cz, 5);
-}
-// Cricket practice pitch + nets
-{
-  const cx=-124, cz=48;
-  sbox(SM.pitch, 24,.14,6, cx, .1, cz, {cast:false});
-  for(let i=0;i<=12;i++) sbox(SM.net, .06,4.2,12, cx-12+i*2, 2.2, cz, {cast:false});
-  sbox(SM.net, 24,4.2,.06, cx, 2.2, cz-6, {cast:false});
-  amen('CRICKET NETS', 'practice pitch', cx, cz, 7);
-}
-// Football / handball ground
-{
-  const cx=-124, cz=92;
-  sbox(SM.lawnD, 46,.14,26, cx, .1, cz, {cast:false});
-  sbox(M.white, 44,.02,.12, cx, .19, cz-12, {cast:false});
-  sbox(M.white, 44,.02,.12, cx, .19, cz+12, {cast:false});
-  for(const dx of [-22,22]){
-    sbox(M.white, .35,2.4,7.3, cx+dx, 1.3, cz, {cast:false});
+/* black steel pavilion with a slatted roof (lily-pond + flower-garden pergolas) */
+function pavilion(x,z,w,d,h){
+  const g=new THREE.Group(); g.position.set(x,GY,z); siteG.add(g);
+  for(const sx of [-1,1]) for(const sz of [-1,1])
+    { const c=new THREE.Mesh(new THREE.CylinderGeometry(.10,.10,h,10), AM.steelB);
+      c.position.set(sx*(w/2-.3), h/2, sz*(d/2-.3)); c.castShadow=true; g.add(c); }
+  // flat pergola: dark steel perimeter beam with open timber slats over it
+  for(const sz of [-1,1]){
+    const b=new THREE.Mesh(new THREE.BoxGeometry(w+.9,.26,.16), AM.steelB);
+    b.position.set(0, h+.13, sz*(d/2+.35)); b.castShadow=true; g.add(b); }
+  for(const sx of [-1,1]){
+    const b=new THREE.Mesh(new THREE.BoxGeometry(.16,.26,d+.9), AM.steelB);
+    b.position.set(sx*(w/2+.45), h+.13, 0); g.add(b); }
+  const n = Math.max(6, Math.round(d/.55));
+  for(let i=0;i<n;i++){
+    const s=new THREE.Mesh(new THREE.BoxGeometry(w+.9,.10,.20), AM.deckT);
+    s.position.set(0, h+.21, -d/2-.2+i*(d+.4)/(n-1)); s.castShadow=true; g.add(s);
   }
-  scyl(M.white, 4.6,4.6,.03, cx, .2, cz, 24);
-  amen('FOOTBALL GROUND', 'football · handball', cx, cz, 7);
+  sbox(SM.deck, w+1.2,.12,d+1.2, x,.06,z, {cast:false});
 }
-// Skating rink (oval)
-{
-  const cx=-70, cz=86;
-  scyl(SM.rink, 20,20,.16, cx, .1, cz, 32).scale.set(1,1,.62);
-  scyl(SM.paver, 21.6,21.6,.1, cx, .04, cz, 32).scale.set(1,1,.62);
-  amen('SKATING RINK', 'oval track', cx, cz, 5);
+/* jet-fountain water body with a circular flower island (the render's signature) */
+function fountainPool(cx,cz,rx,rz, islandR){
+  const p=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.55,40), AM.water);
+  p.scale.set(rx,1,rz); p.position.set(cx, GY+.28, cz); p.receiveShadow=true; siteG.add(p);
+  const rim=new THREE.Mesh(new THREE.CylinderGeometry(1.04,1.04,.42,40), SM.stone);
+  rim.scale.set(rx,1,rz); rim.position.set(cx, GY+.21, cz); siteG.add(rim);
+  const isl=new THREE.Mesh(new THREE.CylinderGeometry(islandR,islandR,.75,26), SM.stone);
+  isl.position.set(cx, GY+.38, cz); isl.castShadow=true; siteG.add(isl);
+  for(let i=0;i<40;i++){
+    const a=i*1.31, r=Math.sqrt((i%9)/9)*islandR*.92;
+    sph(siteG, i%2?AM.pink:SM.petal, .30, cx+Math.cos(a)*r, GY+.86, cz+Math.sin(a)*r, 1,.6,1);
+  }
+  for(let i=0;i<18;i++){                                   // jets around the rim
+    const a=i/18*6.283, jx=cx+Math.cos(a)*rx*.82, jz=cz+Math.sin(a)*rz*.82;
+    const h=1.1+Math.abs(Math.sin(i*1.7))*1.5;
+    scyl(AM.jet, .045,.10,h, jx, .55+h/2, jz, 8);
+    sph(siteG, AM.jet, .16, jx, GY+.55+h, jz, 1,1.3,1);
+  }
+}
+/* white parasol + table, the umbrella lawn */
+function parasol(x,z,s){
+  scyl(SM.stone, .22*s,.26*s,.06*s, x,.03,z, 12);
+  scyl(AM.steelB, .035*s,.035*s,2.2*s, x,1.1*s,z, 8);
+  const c=new THREE.Mesh(new THREE.ConeGeometry(1.35*s,.45*s,12), M.white);
+  c.position.set(x, GY+2.3*s, z); c.castShadow=true; siteG.add(c);
+  scyl(M.white, .80*s,.80*s,.05*s, x,.74*s,z, 14);
+}
+/* floodlight mast for the courts */
+function floodMast(x,z,h,ry){
+  scyl(AM.steelB, .09,.13,h, x,h/2,z, 8);
+  const head=new THREE.Group(); head.position.set(x, GY+h, z); head.rotation.y=ry||0; siteG.add(head);
+  for(const s of [-1,1]){
+    const l=new THREE.Mesh(new THREE.BoxGeometry(.55,.30,.16), AM.steelB);
+    l.position.set(s*.34,.10,0); l.rotation.x=.42; head.add(l);
+    const g=new THREE.Mesh(new THREE.BoxGeometry(.46,.22,.03), M.coveGlow);
+    g.position.set(s*.34,.02,.09); g.rotation.x=.42; head.add(g);
+  }
 }
 
-/* ---------------- AMPHITHEATRE + LAWNS ---------------- */
-{
-  const cx=-26, cz=86;
-  for(let i=0;i<7;i++){
-    const r = 6 + i*3.0;
-    const ring = scyl(SM.stone, r, r, .45, cx, .22+i*.45, cz, 40);
-    ring.scale.set(1,1,1);
+/* =================================================================================
+   LANDSCAPE MASTER PLAN  —  laid out from the project's own eagle-view drawing.
+   Compass in model space:  -x = WEST   +x = EAST   -z = NORTH   +z = SOUTH
+   Our flat is the west-face unit at the north end of Tower B, so the balcony
+   looks WEST over the tennis court, the water body, the fountain and the
+   clubhouse, and NORTH over the football ground.
+   Numbers in comments are the amenity keys printed on the master plan.
+   ================================================================================= */
+
+/* --- extra builders used by the master-plan layout --- */
+function lakeBlob(cx,cz, parts){                    // organic water body (09)
+  parts.forEach(([dx,dz,rx,rz])=>{
+    const p=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.55,34), AM.water);
+    p.scale.set(rx,1,rz); p.position.set(cx+dx, GY+.30, cz+dz); p.receiveShadow=true; siteG.add(p);
+    const r=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,.40,34), SM.stone);
+    r.scale.set(rx,1,rz); r.position.set(cx+dx, GY+.22, cz+dz); siteG.add(r);
+  });
+}
+function arcTerrace(cx,cz, r0, n, w, a0, a1, mat){  // amphitheatre rings (65)
+  for(let i=0;i<n;i++){
+    const r=r0+i*w;
+    const g=new THREE.Mesh(new THREE.RingGeometry(r, r+w*.82, 42, 1, a0, a1-a0), mat);
+    g.rotation.x=-Math.PI/2; g.position.set(cx, GY+.22+i*.42, cz); g.receiveShadow=true; siteG.add(g);
+    const s=new THREE.Mesh(new THREE.CylinderGeometry(r+w*.82, r+w*.82, .42, 48, 1, true, a0, a1-a0), mat);
+    s.position.set(cx, GY+.01+i*.42, cz); siteG.add(s);
   }
-  scyl(SM.deck, 6.5,6.5,.2, cx, 3.4, cz, 28);
-  amen('AMPHITHEATRE', 'open-air performances', cx, cz, 9);
-  // Mexican grass lawn
-  sbox(SM.lawn, 54,.12,34, -30, .06, 40, {cast:false});
-  amen('MEXICAN LAWN', 'open event lawn', -30, 40, 5);
+}
+function parkRows(x0,z0, cols, rows, dx, dz){       // visitors / bike parking (05,06)
+  pad(SM.paver, x0-2, z0-2, x0+cols*dx+2, z0+rows*dz+2, .05);
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    sbox(M.white, dx*.86,.03,.10, x0+c*dx+dx/2, .12, z0+r*dz, {cast:false});
+    if((c+r)%3===0) sbox([SM.stone,AM.steelB,M.white][(c+r)%3], 1.7,.62,4.0,
+                          x0+c*dx+dx/2, .40, z0+r*dz+dz/2, {cast:false});
+  }
+}
+function bedRow(cx,cz,w,d,n,along){                 // planted beds (40,61,38,39)
+  for(let i=0;i<n;i++){
+    const m=[AM.yellow, AM.pink, AM.purple, SM.petal2, SM.hedge][i%5];
+    if(along==='z') { sbox(m, w,.36,d/n*.78, cx, .19, cz-d/2+(i+.5)*d/n, {cast:false});
+                      sbox(SM.stone, w+.5,.18,d/n*.92, cx,.09, cz-d/2+(i+.5)*d/n, {cast:false}); }
+    else            { sbox(m, w/n*.78,.36,d, cx-w/2+(i+.5)*w/n, .19, cz, {cast:false});
+                      sbox(SM.stone, w/n*.92,.18,d+.5, cx-w/2+(i+.5)*w/n,.09, cz, {cast:false}); }
+  }
+}
+function treeAt(x,z,s,pine){
+  scyl(M.trunk, .16*s,.24*s, 3.0*s, x, 1.5*s, z, 6);
+  if(pine) for(let i=0;i<3;i++) scyl(SM.hedge, .02, (2.2-i*.55)*s, 2.4*s, x, (3.2+i*1.6)*s, z, 8);
+  else { sph(siteG, M.green, 2.2*s, x, GY+4.6*s, z, 1,.85,1);
+         sph(siteG, SM.hedge, 1.5*s, x-.9*s, GY+4.0*s, z+.7*s); }
 }
 
-/* ---------------- CYCLING TRACK (2.5 m) around the site ---------------- */
+/* ============ A · WEST APPROACH — entry arch, party lawn, parking, clubhouse ==== */
 {
-  const pts = [[-8,-60],[-150,-60],[-150,118],[-8,118]];
-  const seg = (x0,z0,x1,z1)=>{
-    const w = Math.abs(x1-x0)||2.5, d = Math.abs(z1-z0)||2.5;
-    sbox(SM.track, w+2.5, .1, d+2.5, (x0+x1)/2, .05, (z0+z1)/2, {cast:false});
-  };
-  seg(-8,-60,-150,-60); seg(-150,-60,-150,118); seg(-150,118,-8,118); seg(-8,-60,-8,118);
-  amen('CYCLING TRACK', '2.5 m wide loop around the site', -8, 30, 4);
+  // 01 main entry / exit arch + 02 security room, at the far west end
+  const ex=-198, ez=-38;
+  sbox(M.road, 26,.1,16, ex+8, .02, ez, {cast:false});
+  for(const s of [-1,1]) sbox(SM.club, 1.8,7.0,1.8, ex, 3.5, ez+s*7, {cast:true});
+  sbox(SM.roofM, 4,.9,17, ex, 7.4, ez, {cast:true});
+  sbox(M.white, 6,1.1,.3, ex+.3, 6.0, ez, {cast:false});
+  sbox(SM.club, 5,3.2,4, ex+7, 1.6, ez+9.5, {cast:true});
+  sbox(AM.steelB, 8,.30,.30, ex+5, 2.4, ez+4.5, {cast:false});
+  amen('MAIN ENTRY', '01 · entry / exit arch and security', ex, ez, 11);
+
+  // 03 · 8 m wide driveway running the length of the west band
+  sbox(M.road, 182,.1,9, -105, .02, ez+2, {cast:false});
+  for(let i=0;i<20;i++) sbox(M.white, 3.4,.11,.1, -190+i*9.2, .03, ez+2, {cast:false});
+
+  // 04 multipurpose party lawn
+  pad(SM.lawn, -196, -24, -160, 8, .07);
+  for(let i=0;i<9;i++) treeAt(-192+ (i%3)*13, -18+Math.floor(i/3)*13, .8, false);
+  for(let i=0;i<6;i++) parasol(-190+i*5.6, 4, .9);
+  amen('PARTY LAWN', '04 · multipurpose lawn by the entry', -178, -8, 6);
+
+  // 05 bike parking · 06 visitors parking
+  parkRows(-190, 14, 5, 3, 5.4, 7.0);
+  parkRows(-124, -34, 6, 2, 5.4, 7.0);
+  amen('VISITORS PARKING', '06 · surface bays off the driveway', -108, -27, 5);
+
+  // 50,000 sqft CLUBHOUSE — wave-form louvred canopy over full-height glass
+  const x0=-172, x1=-128, z0=-20, z1=10, cx=(x0+x1)/2, cz=(z0+z1)/2, W=x1-x0, D=z1-z0;
+  slatPaving(x0-6, z1+1, x1+6, z1+11, 'x');
+  sbox(SM.paver, W+12, .30, D+12, cx, .15, cz, {cast:false});
+  for(let f=0; f<2; f++){
+    const y = .30 + f*5.2;
+    sbox(AM.clubW,  W,      .40, D,      cx, y+5.00, cz, {cast:true});
+    sbox(AM.glassC, W-.50,  4.55, D-.50, cx, y+2.45, cz, {cast:false});
+    for(let i=0;i<22;i++){
+      const px = x0+1.0+i*(W-2.0)/21;
+      sbox(AM.clubW, .22, 4.7, .22, px, y+2.5, z0+.15, {cast:false});
+      sbox(AM.clubW, .22, 4.7, .22, px, y+2.5, z1-.15, {cast:false});
+    }
+  }
+  // building roof, then the wave: open louvre blades floating clear above it
+  sbox(SM.towerT, W+1.0, .45, D+1.0, cx, 10.30, cz, {cast:false});
+  const base = 12.2, NB = 33, sp = W/(NB-1);
+  for(let i=0;i<NB;i++){
+    const t = i/(NB-1), px = x0 + t*W, lift = Math.sin(t*Math.PI*1.28) * 3.8;
+    sbox(SM.roofM, sp*.34, .26, D+3.0, px, base+lift, cz, {cast:true});   // blade
+    for(const s of [-1,1])                                                // slim props
+      scyl(AM.steelB, .06,.06, lift+1.4, px, base+lift-(lift+1.4)/2, cz+s*(D/2+1.0), 6);
+  }
+  for(let i=0;i<NB-1;i++){                                                // curved fascia edges
+    const t=(i+.5)/(NB-1), px=x0+t*W, lift=Math.sin(t*Math.PI*1.28)*3.8;
+    for(const s of [-1,1]) sbox(AM.steelB, sp, .16, .22, px, base+lift-.12, cz+s*(D/2+1.5), {cast:false});
+  }
+  for(let i=0;i<14;i++) sph(siteG, SM.hedge, .75, x0+3+i*(W-6)/13, GY+10.7, z1-1.4, 1,.7,1);
+  sbox(SM.roofM, 16,.45,7, cx, 5.3, z1+5.0, {cast:true});
+  for(const px of [cx-7, cx, cx+7]) scyl(AM.steelB, .22,.22,5.1, px, 2.6, z1+8.2, 10);
+  for(let i=0;i<10;i++) scyl(SM.hedge, .05,.95,3.4, x0+2+i*(W-4)/9, 1.7, z1+11.0, 10);
+  sbox(M.white, 9,.9,.25, cx-3, 6.4, z1+8.8, {cast:false});
+  amen('THE CLUB', '50,000 sqft — gym, squash, virtual golf, mini theatre, banquet', cx, cz, 19);
 }
 
-/* ---------------- GARDENS & QUIET ZONES (near, west of our balcony) ---------------- */
-// Zen garden + Buddha + lily pond — the closest thing to our balcony
+/* ============ B · WATER GARDEN — 09 water body, 11 fountain, 07 planter ========= */
 {
-  const cx=-24, cz=-34;
-  sbox(SM.sand, 26,.12,20, cx, .07, cz, {cast:false});
-  for(let i=0;i<5;i++) scyl(SM.stone, 1.4-i*.1, 1.6-i*.1, .5, cx-9+i*4.4, .3, cz-5+((i%2)*6), 10);
-  for(let i=0;i<6;i++) scyl(SM.paver, 5.6+i*1.7, 5.6+i*1.7, .02, cx+3, .16, cz+3, 30);
-  scyl(SM.stone, 1.6,2.0,1.2, cx-2, .7, cz+7, 12);
-  scyl(SM.buddha, .0,1.15,3.4, cx-2, 3.0, cz+7, 12);
-  amen('ZEN GARDEN', 'meditation deck · Buddha statue', cx, cz, 6);
-  // lily pond
-  const px=-6, pz=-52;
-  scyl(SM.lily, 9,9,.4, px, .2, pz, 26).scale.set(1.5,1,1);
-  for(let i=0;i<12;i++) scyl(M.green, .8,.8,.05, px-10+ (i*1.9), .42, pz-3+ (i%4)*2.2, 8);
-  amen('LILY POND', 'water body · bird bath', px, pz, 4);
-}
-// Herbal garden, flower garden, fruit orchard, butterfly garden
-{
-  const bed=(x,z,w,d,mat)=>{ sbox(mat, w,.35,d, x,.2,z, {cast:false});
-    sbox(SM.stone, w+.5,.2,d+.5, x,.1,z, {cast:false}); };
-  bed(-96, 40, 16, 10, SM.hedge);   amen('HERBAL GARDEN', 'aromatic beds', -96, 40, 4);
-  bed(-96, 56, 16, 10, SM.petal);   amen('FLOWER GARDEN', 'butterfly garden alongside', -96, 56, 4);
-  // fruit orchard rows
-  amen('FRUIT ORCHARD', 'mango · guava · chikoo rows', -60, 60, 6);
-  // pebble garden
-  sbox(SM.stone, 14,.2,9, -8, .1, 62, {cast:false});
-  amen('PEBBLE GARDEN', 'acupressure pathway', -8, 62, 4);
-}
-// Children's play area + sand pit + toddler zone
-{
-  const cx=-56, cz=-40;
-  sbox(SM.track, 24,.14,16, cx, .08, cz, {cast:false});
-  sbox(SM.sand, 9,.14,7, cx+9, .1, cz+6, {cast:false});
-  // slide + frame
-  sbox(SM.petal2, 3.2,.3,1.2, cx-4, 2.4, cz, {cast:true});
-  scyl(SM.stone, .12,.12,2.6, cx-5.4, 1.3, cz, 8); scyl(SM.stone,.12,.12,2.6, cx-2.6,1.3,cz,8);
-  const sl = sbox(SM.petal, .9,.16,4.4, cx-1.2, 1.4, cz+1.6, {cast:true}); sl.rotation.x = -.5;
-  for(let i=0;i<4;i++) scyl(SM.petal2, .5,.5,.4, cx+3+i*2.2, .5, cz-4, 10);
-  amen("CHILDREN'S PLAY AREA", 'sand pit · toddler zone', cx, cz, 5);
-}
-// Pet park
-{
-  sbox(SM.lawn, 22,.12,16, -100, .06, -70, {cast:false});
-  for(let i=0;i<10;i++) sbox(SM.stone, .08,1.2,.08, -111+i*2.3, .6, -78, {cast:false});
-  amen('PET PARK', 'fenced run', -100, -70, 4);
-}
-// Outdoor gym + yoga / aerobics deck
-{
-  sbox(SM.deck, 18,.14,12, -14, .08, 24, {cast:false});
-  for(let i=0;i<4;i++){ scyl(SM.stone,.1,.1,1.6,-20+i*4,.8,22,8); sbox(M.black,1.4,.2,.3,-20+i*4,1.6,22,{cast:false}); }
-  amen('OUTDOOR GYM', 'open-air fitness deck', -14, 24, 4);
-  sbox(SM.deck, 16,.14,12, -14, .08, 62, {cast:false});
-  amen('YOGA DECK', 'meditation & aerobics court', -14, 62, 4);
-}
-// Life-size outdoor chess
-{
-  const cx=-44, cz=8;
-  for(let i=0;i<8;i++) for(let j=0;j<8;j++)
-    sbox((i+j)%2 ? M.white : M.black, 1.4,.06,1.4, cx-5.6+i*1.4, .1, cz-5.6+j*1.4, {cast:false});
-  for(let i=0;i<8;i++){ scyl(M.white,.22,.3,.9, cx-5.6+i*1.4,.55,cz-4.9,8);
-                        scyl(M.black,.22,.3,.9, cx-5.6+i*1.4,.55,cz+4.9,8); }
-  amen('OUTDOOR CHESS', 'life-size board', cx, cz, 4);
-}
-// Barbecue zone + gazebos + senior sit-out
-{
-  const gaz=(x,z)=>{ for(const [dx,dz] of [[-2,-2],[2,-2],[-2,2],[2,2]]) scyl(SM.stone,.14,.14,2.6,x+dx,1.3,z+dz,8);
-    scyl(SM.roofM, 3.8, .1, .9, x, 3.0, z, 8); };
-  gaz(-34,-60); gaz(-70,20); gaz(-8,-8);
-  amen('BARBECUE & GAZEBOS', 'senior sit-out · viewing gallery', -34, -60, 5);
-}
-// Miyawaki forest — dense native planting on the far edge
-{
-  for(let i=0;i<90;i++){
-    const x = -168 + (i%15)*3.4 + (i%3), z = -30 + Math.floor(i/15)*7 + (i%5)*1.4;
-    scyl(M.trunk, .16,.22, 2.2, x, 1.1, z, 6);
-    sph(siteG, SM.hedge, 1.5+(i%3)*.3, x, GY+3.4, z, 1,1.25,1);
+  const cx=-96, cz=2;
+  pad(SM.lawn, -122, -22, -60, 30, .06);
+  lakeBlob(cx, cz, [[-14,-2, 13, 9], [4,3, 12, 10], [16,-4, 8, 6]]);
+  // 09's planted island + 51 water body with planter box
+  scyl(SM.stone, 5.4,5.8,.85, cx+3, .42, cz+3, 26);
+  scyl(SM.lawn,  5.0,5.0,.20, cx+3, .92, cz+3, 26);
+  for(let i=0;i<24;i++){
+    const a=i*1.31, r=Math.sqrt((i%7)/7)*4.4;
+    sph(siteG, i%2?AM.pink:SM.petal2, .32, cx+3+Math.cos(a)*r, GY+1.15, cz+3+Math.sin(a)*r, 1,.6,1);
   }
-  amen('MIYAWAKI FOREST', 'dense native plantation', -140, 10, 8);
+  treeAt(cx+3, cz+3, 1.0, false);
+  // 10-stone stepping causeway + 57 wooden decking over the water
+  for(let i=0;i<7;i++) scyl(SM.stone, 1.0,1.0,.62, cx-4+i*2.6, .34, cz-9.5, 12);
+  sbox(AM.deckT, 16,.16,4.4, cx+14, .62, cz+9, {cast:false});
+  for(let i=0;i<9;i++) scyl(AM.steelB,.07,.07,1.0, cx+6.5+i*1.9, .96, cz+11.1, 6);
+  // 08 seating lounge
+  for(let i=0;i<5;i++) sbox(SM.deck, 3.2,.42,.9, cx-16+i*3.6, .55, cz+11, {cast:false});
+  // 11 water fountain — jets and a flower island
+  fountainPool(-70, 26, 11, 8, 4.2);
+  amen('WATER BODY', '09 · organic lake, island planting and deck', cx, cz, 9);
+  amen('WATER FOUNTAIN', '11 · jet fountain court', -70, 26, 8);
+  // 07 central planter box
+  bedRow(-72, -14, 14, 9, 4, 'x');
 }
 
-/* ---------------- trees, hedges, lamps across the site ---------------- */
+/* ============ C · SPORTS WEST — 13,15,16,18,19,20,21,27 ======================== */
 {
-  const tree=(x,z,s=1,pine=false)=>{
-    scyl(M.trunk, .16*s,.24*s, 3.0*s, x, 1.5*s, z, 6);
-    if(pine) for(let i=0;i<3;i++) scyl(SM.hedge, .02, (2.2-i*.55)*s, 2.4*s, x, (3.2+i*1.6)*s, z, 8);
-    else { sph(siteG, M.green, 2.2*s, x, GY+4.6*s, z, 1,.85,1);
-           sph(siteG, SM.hedge, 1.5*s, x-.9*s, GY+4.0*s, z+.7*s); }
-  };
-  const spots=[[-14,-24],[-14,4],[-14,48],[-14,74],[-14,100],[-92,-30],[-92,-6],[-92,72],
-               [-56,-58],[-40,-24],[-40,66],[-64,44],[-80,60],[-104,88],[-36,110],[-60,110],
-               [-88,110],[-112,60],[-134,-46],[-24,-70],[-56,-72],[-2,-38],[-2,30],[-2,96]];
-  spots.forEach(([x,z],i)=> tree(x,z, .85+ (i%4)*.18, i%3===0));
-  // street lamps along the internal road
-  window.__lamps = [];
-  for(let i=0;i<14;i++){
-    const x = -6, z = -56 + i*13;
-    scyl(SM.stone, .12,.16, 7.0, x, 3.5, z, 8);
-    const head = sph(siteG, M.coveGlow, .38, x, GY+7.2, z);
-    __lamps.push(head);
+  // 15 tennis court — the nearest thing to our balcony, due west
+  const tx=-30, tz=-5;
+  sbox(SM.court, 18,.16,36, tx, .09, tz, {cast:false});
+  sbox(AM.lawnBr, 11,.02,24, tx, .18, tz, {cast:false});
+  sbox(M.white, .10,.03,23.8, tx, .20, tz, {cast:false});
+  for(const dx of [-5.5,5.5]) sbox(M.white, .10,.03,23.8, tx+dx,.20,tz, {cast:false});
+  for(const dz of [-11.9,11.9]) sbox(M.white, 11,.03,.10, tx,.20,tz+dz, {cast:false});
+  sbox(SM.net, .06,1.07,12, tx,.63,tz, {cast:false});
+  for(const s of [-1,1]) floodMast(tx-11, tz+s*15, 8, s>0?Math.PI/2:-Math.PI/2);
+  mosaicWall(tx-11.5, tz+2, 14, 4.2, Math.PI/2);
+  amen('TENNIS COURT', '15 · floodlit, full size', tx, tz, 6);
+
+  // 13 basketball court, south of the tennis court
+  const bx=-30, bz=30;
+  sbox(SM.courtB, 15,.16,28, bx, .09, bz, {cast:false});
+  sbox(M.white, .10,.03,27, bx, .19, bz, {cast:false});
+  for(const dz of [-13.2,13.2]){
+    scyl(SM.stone, .12,.12,3.6, bx, 1.9, bz+dz, 8);
+    sbox(M.white, 1.8,1.05,.10, bx, 3.5, bz+dz*.92, {cast:false});
   }
+  for(const s of [-1,1]) floodMast(bx-9.5, bz+s*13, 7.5, s>0?Math.PI/2:-Math.PI/2);
+  amen('BASKETBALL', '13 · full court', bx, bz, 6);
+
+  // 16 volleyball, further south
+  const vx=-30, vz=62;
+  sbox(AM.steelB, 11,.14,20, vx, .07, vz, {cast:false});
+  sbox(SM.courtB, 9,.03,18, vx, .15, vz, {cast:false});
+  sbox(AM.waterD, 9,.035,9, vx, .17, vz-4.5, {cast:false});
+  sbox(M.white, .10,.04,18, vx,.19,vz, {cast:false});
+  sbox(SM.net, .05,1.0,9, vx,.75,vz, {cast:false});
+  for(const dz of [-4.6,4.6]) scyl(SM.stone,.09,.09,2.6, vx,1.3,vz+dz,8);
+  mosaicWall(vx-7.5, vz, 12, 3.6, Math.PI/2);
+  amen('VOLLEYBALL', '16 · sand and hard court', vx, vz, 5);
+
+  // 18 football / handball ground & frisbee — the long green strip to the NW
+  const fx=-34, fz=-54;
+  sbox(SM.lawnD, 30,.14,52, fx, .07, fz, {cast:false});
+  for(const dz of [-24,24]) sbox(M.white, 28,.03,.12, fx,.16,fz+dz, {cast:false});
+  for(const dz of [-25,25]) sbox(M.white, 7.3,2.4,.35, fx, 1.3, fz+dz, {cast:false});
+  scyl(M.white, 4.6,4.6,.03, fx,.17,fz, 24);
+  sbox(M.white, .12,.03,52, fx,.16,fz, {cast:false});
+  amen('FOOTBALL GROUND', '18 · football, handball and frisbee', fx, fz, 7);
+
+  // 27 cricket pitch practice nets, west of the ground
+  const nx=-70, nz=-54;
+  sbox(SM.pitch, 8,.16,26, nx, .08, nz, {cast:false});
+  for(let i=0;i<=13;i++) sbox(SM.net, 8,5.0,.08, nx, 2.6, nz-13+i*2, {cast:false});
+  for(const dx of [-4,4]) sbox(SM.net, .08,5.0,26, nx+dx, 2.6, nz, {cast:false});
+  sbox(SM.net, 8,.08,26, nx, 5.1, nz, {cast:false});
+  for(let i=0;i<=13;i++) for(const dx of [-4,4]) scyl(AM.steelB,.07,.07,5.1, nx+dx, 2.55, nz-13+i*2, 6);
+  for(const s of [-1,1]) floodMast(nx+6, nz+s*14, 7.5, s>0?Math.PI/2:-Math.PI/2);
+  amen('CRICKET NETS', '27 · floodlit practice bays', nx, nz, 7);
+
+  // 19 maze garden — clipped-hedge spiral north of the tower
+  { const mx=6, mz=-34;
+    pad(SM.lawn, mx-13, mz-13, mx+13, mz+13, .06);
+    for(let r=0;r<5;r++){
+      const rad=3.0+r*2.2, seg=44;
+      for(let i=0;i<seg;i++){
+        if(i > seg-6-r*3) continue;
+        const a=i/seg*6.283 + r*.4;
+        scyl(SM.hedge, .55,.55,1.15, mx+Math.cos(a)*rad, .58, mz+Math.sin(a)*rad, 6);
+      }
+    }
+    amen('MAZE GARDEN', '19 · clipped hedge maze', mx, mz, 6); }
+
+  // 20 community gathering deck
+  sbox(AM.deckT, 18,.20,14, 26, .10, -34, {cast:false});
+  for(let i=0;i<6;i++) sbox(SM.deck, 3.0,.42,.9, 19+ (i%3)*6, .52, -38+Math.floor(i/3)*8, {cast:false});
+  pavilion(26, -34, 9, 8, 3.6);
+  amen('COMMUNITY GATHERING', '20 · shaded meeting deck', 26, -34, 6);
+
+  // 22 transformer yard, tucked into the north-west corner
+  sbox(SM.paver, 16,.2,12, -66, .10, -92, {cast:false});
+  for(let i=0;i<3;i++) sbox(SM.stone, 3.4,2.6,3.0, -71+i*5, 1.3, -92, {cast:true});
+  for(let i=0;i<12;i++) sbox(AM.steelB, .10,2.2,.10, -75+i*1.6, 1.1, -86, {cast:false});
+}
+
+/* ============ 21 · MIYAWAKI FOREST — dense native plantation, far north ======== */
+for(let i=0;i<96;i++){
+  const x=6+(i%12)*3.6+(i%3), z=-96+Math.floor(i/12)*4.4+(i%5)*1.1;
+  scyl(M.trunk, .16,.22, 2.2, x, 1.1, z, 6);
+  sph(siteG, SM.hedge, 1.4+(i%3)*.3, x, GY+3.4, z, 1,1.25,1);
+}
+amen('MIYAWAKI FOREST', '21 · dense native plantation', 26, -84, 8);
+
+/* ============ D · CENTRAL SPINE — pool, amphitheatre, gardens (between B and A) = */
+{
+  slatPaving(21, -18, 30, 66, 'z');                       // chevron plaza along Tower B
+
+  // 52,53,54 swimming pool, toddler's pool and decking
+  const px=44, pz=26;
+  sbox(AM.deckT, 34, .16, 28, px, .08, pz, {cast:false});
+  for(const s of [-1,1]){
+    const p=new THREE.Mesh(new THREE.BoxGeometry(24, .55, 7.0), AM.water);
+    p.position.set(px, GY+.30, pz+s*4.5); p.receiveShadow=true; siteG.add(p);
+    sbox(SM.stone, 25, .30, 7.6, px, .16, pz+s*4.5, {cast:false});
+  }
+  sbox(SM.stone, 24, .55, 1.6, px, .30, pz, {cast:false});
+  for(let i=0;i<16;i++) sph(siteG, i%2?AM.pink:SM.petal, .32, px-11+i*1.5, GY+.72, pz, 1,.7,1);
+  { const t=new THREE.Mesh(new THREE.CylinderGeometry(5.2,5.2,.45,28), SM.waterS);  // 53 toddler
+    t.position.set(px-16, GY+.26, pz+9); t.scale.set(1,1,.72); siteG.add(t);
+    scyl(SM.stone, 5.7,5.7,.30, px-16,.15,pz+9, 28).scale.set(1,1,.72); }
   for(let i=0;i<8;i++){
-    const x = -152, z = -50 + i*22;
-    scyl(SM.stone, .12,.16, 7.0, x, 3.5, z, 8);
-    __lamps.push(sph(siteG, M.coveGlow, .38, x, GY+7.2, z));
+    const lz=pz-12+i*3.4;
+    sbox(M.white, .9,.28,2.0, px-15.5, .30, lz, {cast:true});
+    sbox(M.white, .14,.75,1.9, px-15.9,.72, lz-.6, {cast:false});
+    if(i%2===0) parasol(px-13.3, lz+2.2, 1);
   }
+  for(let r=0;r<3;r++) for(let c=0;c<4;c++) parasol(px+8+c*4.6, pz-11+r*4.4, .95);
+  amen('SWIMMING POOL', '54 · lap pool, 53 toddler pool, 52 decking', px, pz, 8);
+
+  // 59 cafeteria · 60 barbeque · 56 gazebo
+  sbox(AM.clubW, 14,3.4,10, 66, 1.7, 16, {cast:true});
+  sbox(AM.glassC, 13,2.6,9.2, 66, 1.5, 16, {cast:false});
+  sbox(SM.roofM, 16,.5,12, 66, 3.6, 16, {cast:true});
+  sbox(AM.deckT, 14,.16,10, 66, .08, 28, {cast:false});
+  for(let i=0;i<4;i++){
+    const tx=62+ (i%2)*7, tz=25+Math.floor(i/2)*6;
+    parasol(tx, tz, .85);
+    for(const [dx,dz] of [[-.9,0],[.9,0],[0,-.9],[0,.9]])
+      sbox([AM.pink,AM.yellow,AM.lawnBr,AM.purple][(i+ (dx?1:0)+(dz?2:0))%4], .5,.45,.5, tx+dx,.45,tz+dz, {cast:false});
+  }
+  for(let i=0;i<3;i++) sbox(AM.steelB, 1.6,1.0,.9, 58+i*3, .5, 34, {cast:true});   // 60 BBQ
+  pavilion(64, 44, 9, 8, 3.6);                                                     // 56 gazebo
+  amen('CAFETERIA & BBQ', '59, 60 · terrace dining and barbeque', 66, 22, 7);
+
+  // 63,64,65 stage, lawn and amphitheatre
+  const ax=48, az=-4;
+  pad(SM.lawn, ax-24, az-22, ax+22, az+20, .06);
+  arcTerrace(ax, az+4, 7.0, 6, 2.0, -1.05, 1.05, AM.deckT);
+  scyl(SM.stone, 6.4,6.4,.55, ax-3, .28, az+4, 30);
+  sbox(SM.roofM, 1.2,.35,12, ax-8.6, .55, az+4, {cast:false});
+  for(let i=0;i<7;i++) sph(siteG, SM.hedge, 1.1, ax-18+i*6, GY+2.0, az-18, 1,.8,1);
+  amen('AMPHITHEATRE', '63, 64, 65 · stage, lawn and stepped seating', ax, az, 8);
+
+  // 61 flower garden · 72 rock and sculpture garden · 71 water cascade
+  bedRow(30, -8, 8, 26, 7, 'z');
+  amen('FLOWER GARDEN', '61 · seasonal beds', 30, -8, 5);
+  { const rx=32, rz=12;
+    pad(SM.sand, rx-6, rz-8, rx+6, rz+8, .06);
+    for(let i=0;i<9;i++) scyl(SM.stone, .8+(i%3)*.5, 1.2+(i%3)*.6, 1.2+(i%4)*.7,
+                              rx-4+(i%3)*4, .7, rz-6+Math.floor(i/3)*6, 8);
+    for(let i=0;i<5;i++) sbox(SM.stone, 5.0,.42,1.6, rx, .22+i*.42, rz-9-i*1.5, {cast:false});
+    for(let i=0;i<5;i++) sbox(AM.water, 4.6,.10,1.4, rx, .46+i*.42, rz-9-i*1.5, {cast:false});
+    amen('ROCK GARDEN & CASCADE', '71, 72 · sculpture rocks and stepped water', rx, rz, 6); }
 }
 
-/* ---------------- internal roads, drop-off, gate (east side) ---------------- */
+/* ============ E · SOUTH ACTIVE ZONE — 42..49 =================================== */
 {
-  sbox(M.road, 9,.1,190, -6, .02, 26, {cast:false});             // main loop road
-  sbox(M.road, 60,.1,9, 24, .02, -58, {cast:false});
-  sbox(M.road, 60,.1,9, 24, .02, 78, {cast:false});
-  for(let i=0;i<22;i++) sbox(M.white, .1,.11,3.4, -6, .03, -60+i*9, {cast:false});
-  // entry gate + boom + guard cabin (east, toward Sarjapur Road)
-  sbox(SM.club, 7,4,6, 66, 2, 22, {cast:true});
-  sbox(SM.roofM, 26,.6,12, 60, 5.4, 22, {cast:true});
-  for(const pz of [17,27]) scyl(SM.stone, .5,.5,5, 50, 2.5, pz, 10);
-  sbox(M.black, 9,.35,.35, 56, 3.0, 22, {cast:false});
-  sbox(M.road, 26,.1,14, 62, .02, 22, {cast:false});
-  amen('MAIN GATE', 'off Sarjapur Road · behind Wipro SEZ', 62, 22, 8);
+  // 45 skating rink
+  const sx=6, sz=52;
+  scyl(SM.rink, 15,15,.18, sx, .09, sz, 32).scale.set(1,1,.68);
+  scyl(SM.paver, 16.4,16.4,.10, sx, .04, sz, 32).scale.set(1,1,.68);
+  amen('SKATING RINK', '45 · oval rink', sx, sz, 5);
+
+  // 44 outdoor gym and exercise · 42 aerobics
+  const gx=32, gz=62;
+  sbox(AM.lawnBr, 22,.16,13, gx, .08, gz, {cast:false});
+  for(let i=0;i<8;i++){
+    const rx=gx-9+ (i%4)*5.4, rz=gz-3+Math.floor(i/4)*6;
+    scyl(AM.steelB, .09,.09,1.9, rx, 1.0, rz, 8);
+    scyl(AM.steelB, .09,.09,1.9, rx+1.3, 1.0, rz, 8);
+    sbox(AM.steelB, 1.5,.10,.10, rx+.65, 1.9, rz, {cast:false});
+    sbox(AM.lawnBr, .40,.55,.14, rx+.65, 1.25, rz, {cast:false});
+  }
+  sbox(AM.deckT, 14,.16,10, gx+22, .08, gz-4, {cast:false});
+  amen('OUTDOOR GYM', '44, 42 · fitness rigs and aerobics deck', gx, gz, 5);
+
+  // 43 fenced pet off-leash park
+  pad(SM.lawn, 12, 66, 34, 82, .06);
+  for(let i=0;i<11;i++) sbox(AM.steelB, .08,1.2,.08, 12+i*2.2, .60, 66, {cast:false});
+  for(let i=0;i<8;i++) sbox(AM.steelB, .08,1.2,.08, 12, .60, 68+i*2.0, {cast:false});
+  for(let i=0;i<8;i++) sbox(AM.steelB, .08,1.2,.08, 34, .60, 68+i*2.0, {cast:false});
+  amen('PET PARK', '43 · fenced off-leash run', 23, 74, 5);
+
+  // 48 sand pit with seating · 49 outdoor chess · 47 senior citizen · 30 children's play
+  pad(SM.sand, 44, 54, 58, 66, .06);
+  for(let i=0;i<4;i++) sbox(SM.deck, 3.0,.42,.9, 46+i*3.4, .52, 67, {cast:false});
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++)
+    sbox((r+c)%2?M.white:AM.steelB, 1.0,.03,1.0, 62+c*1.0, .14, 56+r*1.0, {cast:false});
+  pavilion(70, 60, 9, 8, 3.4);
+  { const kx=-4, kz=72;                                    // 30 children's play area
+    sbox(SM.track, 20,.16,14, kx, .08, kz, {cast:false});
+    for(let i=0;i<7;i++) scyl([AM.pink,AM.yellow,AM.lawnBr,AM.purple][i%4], .13,.13,
+                              2.2+(i%3)*.5, kx-7+i*2.3, 1.2, kz-3, 10);
+    sbox(AM.yellow, 4.0,.35,1.4, kx-3, 2.5, kz, {cast:true});
+    const sl=sbox(AM.pink, 1.2,.20,4.6, kx, 1.5, kz+2.4, {cast:true}); sl.rotation.x=-.55;
+    for(let i=0;i<4;i++) scyl(AM.lawnBr, .55,.55,.45, kx+5+i*2.4, .30, kz+4, 12);
+    amen("CHILDREN'S PLAY", '30 · soft-surface play and 48 sand pit', kx, kz, 6); }
+}
+
+/* ============ F · FAR EAST BELT — quiet gardens along the boundary ============= */
+{
+  // 24 lily pond + 23 Budda + 55 art gallery / 37 viewing gallery
+  const cx=126, cz=-36;
+  const pond=new THREE.Mesh(new THREE.CylinderGeometry(10,10,.55,32), AM.waterD);
+  pond.position.set(cx, GY+.28, cz); pond.scale.set(1,1,.68); siteG.add(pond);
+  scyl(SM.stone, 10.6,10.6,.42, cx, .21, cz, 32).scale.set(1,1,.68);
+  for(let i=0;i<30;i++){
+    const a=i*1.31, r=2.0+((i*3)%7);
+    const lx=cx+Math.cos(a)*r, lz=cz+Math.sin(a)*r*.68;
+    scyl(SM.hedge, .55,.55,.05, lx, .58, lz, 10);
+    if(i%3===0) sph(siteG, i%2?AM.pink:M.white, .16, lx, GY+.68, lz, 1,.6,1);
+  }
+  pavilion(cx, cz-13, 10, 8, 3.6);
+  amen('LILY POND', '24 · water lilies and viewing pavilion', cx, cz, 7);
+
+  sbox(AM.clubW, 12,3.6,20, 132, 1.8, -60, {cast:true});         // 55 art gallery
+  sbox(AM.glassC, 11,2.8,19, 132, 1.6, -60, {cast:false});
+  sbox(SM.roofM, 14,.5,22, 132, 3.9, -60, {cast:true});
+  for(let i=0;i<5;i++){
+    sbox(M.white, .10,2.0,1.5, 126.4, 1.55, -68+i*4, {cast:false});
+    sbox([SM.hedge,AM.pink,SM.petal2,AM.purple,SM.club][i], .03,1.5,1.2, 126.3, 1.62, -68+i*4, {cast:false});
+  }
+  amen('ART & VIEWING GALLERY', '55, 37 · display walls and lookout', 132, -60, 8);
+
+  // 27 cricket pitch (turf strip) · 28 butterfly garden
+  sbox(SM.lawnD, 26,.14,40, 122, .07, -12, {cast:false});
+  sbox(SM.pitch, 3.2,.16,20, 122, .09, -12, {cast:false});
+  amen('CRICKET PITCH', '27 · turf practice strip', 122, -12, 6);
+  bedRow(134, -14, 8, 22, 6, 'z');
+  amen('BUTTERFLY GARDEN', '28 · nectar planting', 134, -14, 5);
+
+  // 38 fruit garden · 39 pebble park · 40 herbal garden
+  for(let i=0;i<14;i++) treeAt(116+(i%2)*7, 6+Math.floor(i/2)*5.5, .8, false);
+  amen('FRUIT GARDEN', '38 · mango, guava and chikoo rows', 120, 22, 7);
+  pad(SM.stone, 130, 4, 142, 20, .06);
+  for(let i=0;i<40;i++) sph(siteG, SM.stone, .30, 131+(i%10)*1.2, GY+.14, 5+Math.floor(i/10)*4, 1,.4,1);
+  amen('PEBBLE PARK', '39 · reflexology path', 136, 12, 5);
+  bedRow(136, 30, 8, 16, 5, 'z');
+  amen('HERBAL GARDEN', '40 · aromatic beds', 136, 30, 5);
+
+  // 36 zen garden + 23 Budda · 25 acupressure · 33 meditation · 34 yoga
+  const zx=112, zz=40;
+  sbox(SM.sand, 18,.14,14, zx, .07, zz, {cast:false});
+  for(let i=0;i<6;i++) scyl(SM.paver, 4.2+i*1.4, 4.2+i*1.4, .02, zx, .16, zz, 30);
+  scyl(SM.stone, 1.5,1.9,1.1, zx-4, .62, zz+3, 12);
+  scyl(SM.buddha, .0,1.05,3.1, zx-4, 2.7, zz+3, 12);
+  amen('ZEN GARDEN', '36, 23 · meditation deck and Buddha', zx, zz, 6);
+  pad(SM.track, 104, 54, 120, 66, .06);
+  for(let i=0;i<24;i++) sph(siteG, SM.stone, .22, 105+(i%8)*1.9, GY+.14, 56+Math.floor(i/8)*4, 1,.5,1);
+  amen('ACUPRESSURE PARK', '25 · pebble reflexology walk', 112, 60, 5);
+  sbox(AM.deckT, 14,.18,10, 90, .09, 78, {cast:false});
+  amen('YOGA & MEDITATION', '33, 34 · timber decks', 90, 78, 5);
+}
+
+/* ============ G · ROADS, CYCLING TRACK, PLANTATION, LAMPS ====================== */
+{
+  // internal driveway network — 8 m wide, per the master plan
+  const road=(x0,z0,x1,z1)=>sbox(M.road, Math.max(Math.abs(x1-x0),9),.1,
+                                 Math.max(Math.abs(z1-z0),9), (x0+x1)/2,.02,(z0+z1)/2, {cast:false});
+  road(-16,-96,-16, 84);                 // west of Tower B
+  road(-16, 84, 148, 84);                // south loop past Tower A
+  road(148,-96, 148, 84);                // east service road
+  road(-16,-96, 148,-96);                // north loop past Tower C
+  road( 34,-96,  34, 84);                // spine between B and A
+  for(let i=0;i<20;i++) sbox(M.white, .1,.11,3.4, -16, .03, -94+i*9.4, {cast:false});
+  for(let i=0;i<18;i++) sbox(M.white, 3.4,.11,.1, -12+i*9.2, .03, 84, {cast:false});
+
+  // 14 · 2.5 m wide cycling track ringing the whole podium
+  const trk=(x0,z0,x1,z1)=>sbox(SM.track, Math.max(Math.abs(x1-x0),2.5),.12,
+                                Math.max(Math.abs(z1-z0),2.5), (x0+x1)/2,.06,(z0+z1)/2, {cast:false});
+  trk(-56,-88,-56, 78); trk(-56, 78, 142, 78); trk(142,-88, 142, 78); trk(-56,-88, 142,-88);
+  amen('CYCLING TRACK', '14 · 2.5 m loop around the site', -56, -6, 5);
+
+  // 74 tower entries for A and C
+  sbox(SM.roofM, 9,.5,7, 70, 7.9, 42, {cast:true});
+  sbox(SM.roofM, 9,.5,7, 66, 7.9, -32, {cast:true});
+
+  // 41 thick plantation along the boundary + street trees
+  for(let i=0;i<64;i++){
+    const t=i/64*6.283;
+    const x=44+Math.cos(t)*(126+ (i%5)*7), z=-6+Math.sin(t)*(112+ (i%4)*8);
+    treeAt(x, z, .9+(i%4)*.15, i%3===0);
+  }
+  const spots=[[-8,-24],[-8,16],[-8,44],[-8,70],[-46,-20],[-46,14],[-46,44],[-46,-84],
+               [20,-20],[20,10],[20,44],[20,72],[76,-20],[76,4],[76,66],[104,-70],
+               [-120,-30],[-120,22],[-152,-30],[-152,22],[-186,-30],[-96,-30],[-96,26],[104,80]];
+  spots.forEach(([x,z],i)=> treeAt(x,z, .85+(i%4)*.18, i%3===0));
+
+  // street lamps along the internal roads
+  window.__lamps = [];
+  const lamp=(x,z)=>{ scyl(SM.stone, .12,.16, 7.0, x, 3.5, z, 8);
+                      __lamps.push(sph(siteG, M.coveGlow, .38, x, GY+7.2, z)); };
+  for(let i=0;i<14;i++) lamp(-21, -92+i*13);
+  for(let i=0;i<10;i++) lamp( 39, -90+i*19);
+  for(let i=0;i<10;i++) lamp(-190+i*20, -32);
+}
+
+/* ---------------- Sarjapur-side arterial + main gate (east) ---------------- */
+{
+  sbox(M.road, 22,.1,300, 176, .02, -6, {cast:false});
+  for(let i=0;i<30;i++) sbox(M.white, .3,.11,5.0, 176, .03, -150+i*10, {cast:false});
+  sbox(SM.club, 7,4,6, 158, 2, 20, {cast:true});
+  sbox(SM.roofM, 20,.6,12, 162, 5.4, 20, {cast:true});
+  for(const pz of [15,25]) scyl(SM.stone, .5,.5,5, 152, 2.5, pz, 10);
+  sbox(M.black, 9,.35,.35, 154, 3.0, 20, {cast:false});
+  sbox(M.road, 26,.1,14, 162, .02, 20, {cast:false});
+  amen('MAIN GATE', 'off Sarjapur Road · behind Wipro SEZ', 162, 20, 8);
 }
 
 /* ---------------- distant city / horizon ---------------- */
@@ -2312,7 +2615,7 @@ const ROOMS = [
   { n:'Living', h:'media wall on the old flat line', x0:1.415,x1:W_IN,z0:ZA0,z1:ZB1 },
   { n:'Kitchen & dining', h:'granite counter · hob & chimney', x0:1.415,x1:W_IN,z0:ZB1,z1:ZC1 },
   { n:'Pooja', h:'mandir unit · door by customer', x0:1.415,x1:2.90,z0:8.24,z1:ZK1 },
-  { n:'Balcony', h:'14th floor · clubhouse, pool & courts below', x0:-.2,x1:BALW,z0:ZL0,z1:ZL1 },
+  { n:'Balcony', h:'14th floor · west over the courts, lake & clubhouse', x0:-.2,x1:BALW,z0:ZL0,z1:ZL1 },
   { n:'Balcony', h:'off the dining · tulsi corner · amphitheatre view', x0:-.2,x1:BALW,z0:ZK0,z1:9.79 },
   { n:'Master bedroom', h:'UPS wiring · double AC', x0:0,x1:MX1,z0:ZC1,z1:ZM1 },
   { n:'Attached toilet', h:'wall-hung WC · geyser', x0:MX2,x1:MX3,z0:ZC1,z1:ATZ1 },
@@ -2682,7 +2985,7 @@ const TOUR = [
   { x:2.30, z:4.40, yaw:130 },
   { x:2.45, z:5.05, yaw:110 },
   { x:1.36, z:5.05, yaw:95 },
-  { x:0.72, z:5.30, yaw:100, cap:['Main balcony · 14 floors up','Clubhouse, pool and courts straight below'], dwell:3.6 },
+  { x:0.72, z:5.30, yaw:100, cap:['Main balcony · 14 floors up','West over the tennis court, the lake and the clubhouse'], dwell:3.6 },
   { x:0.72, z:4.60, yaw:135, cap:['Looking north-west','Tennis, basketball and the cycling track'], dwell:3.0 },
   { x:1.36, z:5.05, yaw:275 },
   /* 7 POOJA UNIT (through the one kitchen arch) ────────── */

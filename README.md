@@ -31,9 +31,11 @@ Or just open `index.html` directly in a browser.
   there, or double-click the model to drop in.
 - **Toggles** — Labels · Amenities · Realistic · Roof · Evening · Ghost walls ·
   Pigeon net · 2×1BHK · Reset.
-- **14th-floor context** — the flat sits at its real height above a
-  reconstruction of the 12.5-acre site (3 towers, clubhouse, pool, courts,
-  amphitheatre, cycling loop).
+- **14th-floor context** — the flat sits at its real height above the
+  12.5-acre site, laid out from the project's landscape master plan: three
+  towers, the 50,000 sqft clubhouse, the water body, pool, amphitheatre,
+  courts, Miyawaki forest and the 2.5 m cycling loop. Amenity pins carry the
+  master plan's own numbering.
 
 ## Accuracy
 
@@ -41,8 +43,16 @@ Room dimensions, wall positions, door openings and sanitary fixtures are taken
 from the GFC drawings (architectural, electrical, plumbing) by extracting the
 PDF vector geometry — all 11 rooms match their printed dimensions to ≤25 mm.
 
-**The site/amenity layout is a reconstruction.** Trifecta publishes the amenity
-list but not a dimensioned master plan, so the grounds are indicative.
+The site follows the project's landscape master plan (the eagle-view drawing
+with the 74 numbered amenities). Our flat is the **west-face unit at the north
+end of Tower B**, so the balcony looks west over the tennis court, the water
+body, the fountain and the clubhouse, and north over the football ground.
+Compass in model space: `-x` west, `+x` east, `-z` north, `+z` south.
+
+The master plan is not dimensioned, so amenity positions are scaled off the
+drawing (≈0.21 m per drawing pixel, which lands the site at 12.4 acres against
+the published 12.5) — the arrangement is right, the metre-level positions are
+close rather than surveyed.
 
 ## Built-in QA
 
