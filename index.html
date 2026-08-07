@@ -1313,14 +1313,17 @@ function toiletRoom(o){
   const onEast = o.showerWall === 'east';
   const sWall = onEast ? x1 : x0;
   const dir   = onEast ? -1 : 1;                       // into the room from that wall
+  const screen = !o.noScreen;                          // 1.50 m rooms have no partition
   cyl(g, M.chrome, .014,.014,.55, sWall + dir*.05, 2.06, showerZ, {cast:false});
   cyl(g, M.chrome, .014,.014,.30, sWall + dir*.30, 2.32, showerZ, {rz:Math.PI/2, cast:false});
   cyl(g, M.chrome, .105,.105,.02, sWall + dir*.44, 2.29, showerZ, {seg:16, cast:false});
   box(g, M.chrome, .16,.10,.05, sWall + dir*.05, 1.15, showerZ, {cast:false}); // mixer
   cyl(g, M.chrome, .015,.015,.09, sWall + dir*.11, 1.15, showerZ, {rz:Math.PI/2, cast:false});
   const scrZ = showerZ + (o.screenTowards ?? 1) * .48;
-  box(g, M.glass,  .014, 1.90, .82, sWall + dir*.60, .95, scrZ, {cast:false});
-  box(g, M.chrome, .022, 1.90, .026, sWall + dir*.60, .95, scrZ + (o.screenTowards ?? 1)*.40, {cast:false});
+  if(screen){
+    box(g, M.glass,  .014, 1.90, .82, sWall + dir*.60, .95, scrZ, {cast:false});
+    box(g, M.chrome, .022, 1.90, .026, sWall + dir*.60, .95, scrZ + (o.screenTowards ?? 1)*.40, {cast:false});
+  }
   cyl(g, M.steel, .075,.075,.012, sWall + dir*.34, .012, showerZ, {seg:14, cast:false}); // floor trap
   // lit shampoo niche recessed into the shower wall
   { const nz = showerZ - (o.screenTowards ?? 1) * .30;
@@ -1343,10 +1346,16 @@ function toiletRoom(o){
 toiletRoom({ x0:BX2, x1:BX3, z0:.86, z1:ZA0, ledgeX0:BX2, ledgeX1:3.43, ledgeZ:.86, face:1,
              wcX:2.97, basinX0:3.58, basinX1:4.05, basinZ0:2.62, basinZ1:3.12,
              showerZ:1.84, showerWall:'east', screenTowards:-1, geyserX:2.80 });
-// A.TOILET — ledge + EWC on the south wall, basin on the east wall, shower west
-toiletRoom({ x0:MX2, x1:MX3, z0:ZM0, z1:ATZ1, ledgeX0:3.62, ledgeX1:MX3, ledgeZ:ATZ1, face:-1,
-             wcX:4.02, basinX0:4.60, basinX1:4.92, basinZ0:10.66, basinZ1:11.12,
-             showerZ:11.42, showerWall:'west', screenTowards:-1, geyserX:4.70 });
+/* A.TOILET — re-read off the GFC plan. Everything sits on the EAST wall, the one
+   shared with storage, and the west wall (shared with the master bedroom) stays
+   clear: basin hard into the north-east corner beside the door, shower fittings
+   on the east wall mid-room, EWC on the south ledge toward the east end.
+   Previously the basin was 0.7 m too far south, the shower was on the WEST wall
+   and the WC 0.5 m too far west. No glass screen — the room is 1.50 m wide and
+   the drawing shows no partition. */
+toiletRoom({ x0:MX2, x1:MX3, z0:ZM0, z1:ATZ1, ledgeX0:4.09, ledgeX1:MX3, ledgeZ:ATZ1, face:-1,
+             wcX:4.55, basinX0:4.45, basinX1:4.93, basinZ0:10.00, basinZ1:10.52,
+             showerZ:11.10, showerWall:'east', screenTowards:1, noScreen:true, geyserX:4.35 });
 
 /* ---- bedroom.2 ---- */
 colliderTag='bed2';
