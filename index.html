@@ -930,7 +930,9 @@ colliderTag='living';
         0.340  full-height media unit
      4.32 is the hard north limit for the sofa back — past it the bedroom.2 lane
      fails — so the seated throw is ~1.5 m and the TV is a 55", not a 65". */
-  const SX0=3.58, SX1=5.22, CX1=6.22;      // sectional: main run x, chaise east face
+  const SX0=3.58, SX1=5.22, CX1=6.02;      // sectional: main run x, chaise east face
+                                           // (pulled in from 6.22 to leave the
+                                           //  east pocket clear for the jhula)
   const SZ0=4.32, SZ1=5.22, CZ1=5.92;      // back line, main run front, chaise front
   const MU0=3.02, MU1=5.78, TVX=4.40;      // media unit x-span, TV centre
 
@@ -1016,12 +1018,11 @@ colliderTag='living';
     box(F, M.screen, 1.16,.655,.01, TVX, 1.30, zW-.073);
     addCollider(MU0, MU1, zF, zW);
   }
-  // entry side: floating shoe console + mirror, same language as the joinery
-  box(F, M.white, .34,.46,.88, 7.02,.62,3.3, {solid:true});
-  box(F, M.walnut, .37,.04,.91, 7.02,.865,3.3, {cast:false});
-  for(const dz of [-.22,.22]) box(F, M.brass, .022,.018,.24, 6.86,.62,3.3+dz, {cast:false});
-  box(F, M.coveGlow, .02,.016,.66, 6.90,.378,3.3, {cast:false, recv:false});
-  box(F, M.brass, .02,.7,.5, 7.2,1.65,3.3,{cast:false});
+  /* The shoe console used to stand at (7.02, 3.30) — z 2.86–3.74, which straddled
+     wall A (3.20–3.315) with half of it inside bedroom 2, and left only 0.58 m
+     between it and the sectional's back to squeeze through coming in the door.
+     It moves out to the corridor (see the corridor block); the living's east wall
+     has no free run left between the main door, the chaise and the jhula. */
   // art on north wall of living + clock east
   // art on the solid piers of wall A (between the doorways), not across the openings
   const art1 = new THREE.Mesh(new THREE.BoxGeometry(.62,.78,.03), new THREE.MeshStandardMaterial({map:arts[0]}));
@@ -1554,6 +1555,12 @@ pigeon(.05,.14,7.3, 1.8);
   box(F, M.black, .02, 2.3, .03, CORX1-.01, 1.15, 6.15,{cast:false});
   box(F, M.brass, .05,.25,.12, CORX1-.02, 1.15, 5.25,{cast:false});     // call panel
   cyl(F, M.coveGlow, .02,.02,.02, CORX1-.05, 1.28, 5.25,{cast:false});
+  // shoe console + mirror, against the corridor's east wall beside the door
+  box(F, M.white, .34,.46,.62, 8.86,.62,3.35, {solid:true});
+  box(F, M.walnut, .37,.04,.65, 8.86,.865,3.35, {cast:false});
+  for(const dz of [-.15,.15]) box(F, M.brass, .022,.018,.20, 8.70,.62,3.35+dz, {cast:false});
+  box(F, M.coveGlow, .02,.016,.46, 8.74,.378,3.35, {cast:false, recv:false});
+  box(F, M.brass, .02,.7,.5, 9.02,1.65,3.35,{cast:false});
   // door mat + plant
   box(F, M.cushion, .7,.015,.45, 7.6,.01,4.14,{cast:false});
   cyl(F, M.potB, .16,.13,.4, 7.7,.2,3.1); sph(F, M.green, .2, 7.7,.75,3.1, 1,1.3,1);
@@ -1815,9 +1822,10 @@ colliderTag='decor';
   flutedHeadboard(0.20, 11.45, 1.55, Math.PI/2, 1.15);   // master
   flutedHeadboard(7.14, 1.42, 1.50, -Math.PI/2, 1.05);   // bedroom 2
 
-  /* ---- 3. sculptural floor lamp beside the armchair ---- */
+  /* ---- 3. sculptural floor lamp beside the sofa's west arm ----
+     (was at 7.00, 5.78 — the east pocket now belongs to the jhula) */
   {
-    const bx = 7.00, bz = 5.78;
+    const bx = 3.32, bz = 5.55;
     cyl(F, M.stone2, .18,.21,.06, bx, .03, bz, {seg:26});          // travertine disc base
     cyl(F, M.brass,  .022,.022, 1.34, bx, .70, bz, {seg:14});      // slim stem
     cyl(F, M.brass,  .05,.05,.05, bx, 1.36, bz, {seg:14, cast:false});
@@ -1848,14 +1856,18 @@ colliderTag='decor';
   M.granite.needsUpdate = true;
 
   /* ---- 6b. JHULA — teak swing on brass chains, in the hall ----
-     It used to hang at (2.05, 5.95), which put its 0.72 × 1.20 footprint INSIDE
-     the kitchen arch (x 1.415–2.90 in wall B) — the sole opening to the whole
-     south half of the flat. With the arch mouth plugged, the kitchen, pooja,
-     master, both toilets, storage, utility and balcony 2 were unreachable on
-     foot. It now hangs mid-hall facing the balcony, leaving a 1.3 m approach to
-     the slider and a 1.0 m approach to the arch. */
+     Third position, and this one is out of the traffic for good. At (2.05, 5.95)
+     it sat inside the kitchen arch — the sole opening to the south half of the
+     flat. Moved mid-hall to (3.10, 5.30) it cleared the arch but still stood in
+     the middle of the open floor, between the balcony and the seating, so you
+     kept walking into it.
+     It now hangs in the EAST POCKET, in the strip between the sectional's chaise
+     and the east wall. Nothing routes through there — you only ever walk the
+     north spine or the west block — so the whole west half of the hall is open
+     floor and every approach (balcony, kitchen arch, all three doors) is clear.
+     Faces west across the room, as before. */
   (function jhula(){
-    const cx = 3.10, cz = 5.30;                 // seat centre
+    const cx = 6.66, cz = 5.35;                 // seat centre
     const SW = 1.00, SD = .52, SY = .46;        // seat length (along z), depth, height
     const g = new THREE.Group(); F.add(g);
     const teak = M.walnut, teakL = M.oakF;
@@ -1902,13 +1914,11 @@ colliderTag='decor';
     addCollider(cx-SD/2-.10, cx+SD/2+.10, cz-SW/2-.10, cz+SW/2+.10);
   })();
 
-  /* ---- 7. round travertine side table beside the chaise ----
-     (the curved bench that used to sit under the gallery wall is gone — the
-     sectional's back is now at z 4.32 and the bench left only 0.44 m to walk
-     through on the way in from the front door.) */
-  cyl(F, M.stone2, .19,.19,.045, 6.58, .50, 5.28, {seg:24});
-  cyl(F, M.brass,  .016,.016,.48, 6.58, .24, 5.28, {seg:10});
-  cyl(F, M.brass,  .17,.17,.02,  6.58, .012, 5.28, {seg:20, cast:false});
+  /* ---- 7. (nothing free-standing in the hall floor) ----
+     The curved bench under the gallery wall and the round side table beside the
+     chaise are both gone: the bench left only 0.44 m to walk through from the
+     front door, and the side table's spot is now the jhula's. The hall floor is
+     deliberately empty apart from the coffee table inside the sectional's crook. */
 })();
 
 /* ================= 2×1BHK ghost overlay ================= */
@@ -2781,9 +2791,8 @@ const walk = { x:8.45, z:4.14, yaw:Math.PI/2, pitch:0, keys:{} };
 const touch = { mx:0, mz:0, moveId:-1, lookId:-1, mx0:0, my0:0, lx:0, ly:0 };
 // orbit from the north-west so the camera stays clear of the tower mass east of
 // the flat (the tower now runs from x 7.4 eastward, 14 floors up)
-const ORBIT0 = { theta:3.95, phi:.90, r:17.0 };
-const orbit = { ...ORBIT0, tx:3.6, ty:1.0, tz:6.6,
-                dTheta:ORBIT0.theta, dPhi:ORBIT0.phi, dR:ORBIT0.r };
+const ORBIT0 = { theta:3.95, phi:.90, r:17.0, tx:3.6, ty:1.0, tz:6.6 };
+const orbit = { ...ORBIT0, dTheta:ORBIT0.theta, dPhi:ORBIT0.phi, dR:ORBIT0.r };
 const EYE = 1.62;
 
 function roofVisible(){
@@ -3342,6 +3351,18 @@ mm.addEventListener('click', e=>{
   const room = roomAt(wx,wz);
   if(!room) return;
   stopTour(false);
+  /* In OVERVIEW, clicking a room re-frames the dollhouse on that room instead of
+     dropping you into it — the orbit target moves to the room's centre and the
+     radius pulls in, which is how you get the single-room isometric cutaway.
+     In WALK it teleports you there as before. */
+  if(state.mode==='overview'){
+    orbit.tx = (room.x0+room.x1)/2;
+    orbit.tz = (room.z0+room.z1)/2;
+    orbit.ty = 1.1;
+    orbit.dR = orbit.r = Math.max(5.2, Math.hypot(room.x1-room.x0, room.z1-room.z0) * 1.55);
+    orbit.dPhi = orbit.phi = .62;                 // ~35° above the floor, like a plan render
+    return;
+  }
   const key = (room.n==='Balcony' && wz>ZK0-.5) ? 'Balcony 2' : room.n;
   const a = ROOM_ANCHOR[key] || [wx,wz,0];
   fadeTeleport(a[0],a[1],a[2]);
@@ -3469,7 +3490,45 @@ window.__qaReach = ()=>{
     if(!free[n])      bad.push({ room:k, why:'anchor stands inside furniture' });
     else if(!seen[n]) bad.push({ room:k, why:'no walkable route from the front door' });
   }
-  return { allReachable: !bad.length, bad, walkableCells: reached };
+  /* How WIDE is the tightest point on the way to each room? Reachable is not the
+     same as comfortable — a 0.15 m slot passes the flood fill and still feels
+     blocked. Grow the player disc until the room drops out; the last radius that
+     still gets there is the bottleneck. */
+  const widths = {};
+  for(const [k,v] of Object.entries(ROOM_ANCHOR)){
+    const ti = Math.round((v[0]-X0)/S), tj = Math.round((v[1]-Z0)/S);
+    let best = 0;
+    for(let pad=0; pad<=10; pad++){                       // pad in 5 cm steps
+      const ok = new Uint8Array(NX*NZ), q=[si*NZ+sj];
+      const clear = (i,j)=>{
+        for(let a=-pad;a<=pad;a++) for(let b=-pad;b<=pad;b++){
+          const p=i+a, r=j+b;
+          if(p<0||r<0||p>=NX||r>=NZ||!free[p*NZ+r]) return false;
+        }
+        return true;
+      };
+      if(!clear(si,sj)) break;
+      ok[si*NZ+sj]=1; let hit=false;
+      // "arrived" = within 0.5 m of the anchor, so an anchor that simply stands
+      // near a wall doesn't get scored as a narrow corridor
+      const near = 10;
+      while(q.length){
+        const c=q.pop(), i=(c/NZ)|0, j=c%NZ;
+        if(Math.abs(i-ti)<=near && Math.abs(j-tj)<=near){ hit=true; break; }
+        for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const a=i+di, b=j+dj;
+          if(a<0||b<0||a>=NX||b>=NZ) continue;
+          const n=a*NZ+b; if(ok[n]||!free[n]||!clear(a,b)) continue;
+          ok[n]=1; q.push(n);
+        }
+      }
+      if(!hit) break;
+      best = pad;
+    }
+    widths[k] = +(0.34 + 2*best*S).toFixed(2);            // disc 0.34 + padding
+  }
+  const tight = Object.entries(widths).filter(([,w])=>w < .70).map(([k,w])=>({room:k, width:w}));
+  return { allReachable: !bad.length, bad, tight, widths, walkableCells: reached };
 };
 /* every ROOM_ANCHOR and TOUR waypoint must stand in free space */
 window.__qaPoints = ()=>{
@@ -3568,8 +3627,10 @@ window.__qaTour = (maxSecs)=>{
 window.__walkTo = (x,z,yawDeg,pitchDeg=0)=>{ hideIntro(); stopTour(false); glide.on=false;
   Object.assign(walk,{x,z,yaw:yawDeg*Math.PI/180,pitch:pitchDeg*Math.PI/180});
   setMode('walk', true); document.exitPointerLock?.(); };
-window.__orbitTo = (theta,phi,r)=>{ hideIntro(); stopTour(false); glide.on=false;
-  Object.assign(orbit,{theta,phi,r,dTheta:theta,dPhi:phi,dR:r}); setMode('overview', true); };
+window.__orbitTo = (theta,phi,r,tx,tz)=>{ hideIntro(); stopTour(false); glide.on=false;
+  Object.assign(orbit,{theta,phi,r,dTheta:theta,dPhi:phi,dR:r});
+  if(tx!==undefined){ orbit.tx=tx; orbit.tz=tz; orbit.ty=1.1; }
+  setMode('overview', true); };
 window.__pos = ()=> ({x:+walk.x.toFixed(3), z:+walk.z.toFixed(3), yaw:+walk.yaw.toFixed(3),
   mode:state.mode, tour:tour.on, glide:glide.on});
 window.__tour = startTour;
