@@ -53,8 +53,10 @@ Furniture is laid out to the same dimensions, and where the room is tight the
 layout says so rather than pretending otherwise. The living room is only 3.20 m
 from the door wall to the media wall, and the sofa's back cannot come north of
 z 4.32 without closing the walking lane to the bedroom / toilet / study doors —
-so the depth left in front is 2.19 m, and the TV is sized to the ~1.55 m throw
-that allows (55", on a floating credenza) rather than to the width of the wall.
+so the depth left in front is 2.19 m. The seating is an L-sectional wrapping the
+north-east, the TV sits in a full-height unit (white lacquer carcass, backlit
+walnut open shelves, continuous base run on a recessed plinth), and the set is
+sized to the ~1.5 m throw the room allows — 55", not 65".
 
 The master plan is not dimensioned, so amenity positions are scaled off the
 drawing (≈0.21 m per drawing pixel, which lands the site at 12.4 acres against
