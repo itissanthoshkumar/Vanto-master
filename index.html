@@ -658,9 +658,13 @@ wallRun(wallsG, M.wallInt, 'x', (ZB0+ZB1)/2, 5.12, W_IN, INT, CEIL);
 // Wall C is full height only as far as the a.toilet; from there east the kitchen
 // opens into the utility over a 3 ft (0.92 m) counter wall, with a clear
 // walk-through at x 5.065–6.00. Washer + dishwasher stand behind that low wall.
+/* Wall C is SOLID east of the bedroom door. The a.toilet is NOT entered off the
+   dining — D2 is in the m.bedroom | a.toilet wall (see the bottom band below),
+   at its north end, so the toilet opens off the bedroom and sits behind the
+   bedroom door when that swings back. It used to have an opening here at
+   x 3.60–4.35, which put the toilet entrance facing the kitchen island. */
 wallRun(wallsG, M.wallInt, 'x', (ZC0+ZC1)/2, 0, MX4, INT, CEIL, [
   { a:2.42, b:3.28 },     // D1 m.bedroom
-  { a:3.60, b:4.35 },     // D2 a.toilet
 ]);
 {
   const zc=(ZC0+ZC1)/2, LW=0.92;
@@ -668,13 +672,18 @@ wallRun(wallsG, M.wallInt, 'x', (ZC0+ZC1)/2, 0, MX4, INT, CEIL, [
   box(wallsG, M.granite, W_IN-6.00, .05, INT+.09, (6.00+W_IN)/2, LW+.025, zc, {cast:false});
   box(wallsG, M.wallInt, .12, CEIL, INT, W_IN-.06, CEIL/2, zc, {solid:false, cast:false});
 }
-// wall C doors swing south into their rooms, angled away from the beds/fittings
+// wall C door swings south into the bedroom, angled away from the bed
 doorFrame(world,'x',(ZC0+ZC1)/2, 2.42,3.28); doorAt(world, 2.42,(ZC0+ZC1)/2, .86, -Math.PI/2+.2, M.doorM);
-doorFrame(world,'x',(ZC0+ZC1)/2, 3.60,4.35); doorAt(world, 3.60,(ZC0+ZC1)/2, .75, -Math.PI/2+.2, M.doorM);
 // (no storage door — the kitchen now opens straight into the utility)
 
 // bottom band verticals
-wallRun(wallsG, M.wallInt, 'z', (MX1+MX2)/2, ZM0, ZM1, INT, CEIL);            // m.bed | a.toilet strip
+// D2 · a.toilet — in the bedroom party wall at its north end, hinged on the
+// south jamb and swung back against the toilet's own west wall
+wallRun(wallsG, M.wallInt, 'z', (MX1+MX2)/2, ZM0, ZM1, INT, CEIL, [
+  { a:ZM0, b:10.765 },                                                        // D2 a.toilet
+]);
+doorFrame(world,'z',(MX1+MX2)/2, ZM0, 10.765);
+doorAt(world, 3.47, 10.755, .80, 1.47, M.doorM);
 wallRun(wallsG, M.wallInt, 'z', (MX3+MX4)/2, ZM0, ZM1, INT, CEIL);            // a.toilet strip | storage
 wallRun(wallsG, M.wallInt, 'x', ATZ1+.045, MX2, MX3, .09, CEIL);              // a.toilet | duct
 wallRun(wallsG, M.wallInt, 'x', (STZ1+UTZ0)/2, MX4, W_IN, .05, CEIL, [
@@ -3179,13 +3188,13 @@ const TOUR = [
   { x:2.85, z:9.89, yaw:180 },
   { x:2.60, z:10.70, yaw:125, cap:['Master bedroom','11\'0" × 10\'6" — clay accent, fluted headboard, double AC'], dwell:3.4 },
   { x:2.46, z:12.30, yaw:80,  cap:['South-west corner','Two windows, wardrobe along the east wall'], dwell:2.6 },
+  /* 10 ATTACHED WASHROOM — off the bedroom, behind its door ─ */
+  { x:2.85, z:10.60, yaw:250 },
+  { x:3.20, z:10.40, yaw:270 },
+  { x:3.70, z:10.40, yaw:290 },
+  { x:4.10, z:10.90, yaw:317, cap:['Attached washroom','Off the bedroom — basin in the corner, WC on the south ledge'], dwell:2.8 },
+  { x:3.70, z:10.40, yaw:90 },
   { x:2.85, z:9.89, yaw:0 },
-  /* 10 ATTACHED WASHROOM (in → look → out) ─────────────── */
-  { x:3.50, z:9.40, yaw:90 },
-  { x:3.95, z:9.40, yaw:180 },
-  { x:3.95, z:9.89, yaw:180 },
-  { x:4.20, z:10.70, yaw:170, cap:['Attached washroom','Basin on the east wall, WC on the south ledge'], dwell:2.8 },
-  { x:3.95, z:9.89, yaw:0 },
   /* 11 KITCHEN ─────────────────────────────────────────── */
   { x:3.30, z:9.30, yaw:300, cap:['Kitchen','19\'0" × 10\'6" — one way in, the arch by the pooja'], dwell:3.0 },
   { x:3.30, z:9.10, yaw:15,  cap:['The island','Travertine top, breakfast overhang, three stools'], dwell:3.4 },
@@ -3444,7 +3453,7 @@ const LANES = [
   { n:'D2 · c.toilet',         ax:'z', at:3.258, lo:2.85, hi:3.40 },
   { n:'D1 · bedroom.2',        ax:'z', at:3.258, lo:4.45, hi:5.05 },
   { n:'D1 · m.bedroom',        ax:'z', at:9.888, lo:2.52, hi:3.18 },
-  { n:'D2 · a.toilet',         ax:'z', at:9.888, lo:3.70, hi:4.25 },
+  { n:'D2 · a.toilet',         ax:'x', at:3.408, lo:10.05, hi:10.66 },
   { n:'kitchen→utility (open)', ax:'z', at:9.888, lo:5.15, hi:5.90 },
   { n:'living↔kitchen (sole)', ax:'z', at:6.573, lo:1.55, hi:2.85 },
   { n:'SD1 · balcony 1',       ax:'x', at:1.358, lo:4.95, hi:5.95 },
