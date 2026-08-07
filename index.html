@@ -1443,8 +1443,20 @@ colliderTag='storage';
   box(F, M2.inox, .28,.29,.44, MX4+.16, y0+1.50, 11.30, {cast:true});
   box(F, M2.drum, .012,.20,.30, MX4+.30, y0+1.50, 11.24, {cast:false});
   box(F, M2.led, .006,.02,.07, MX4+.30, y0+1.58, 11.46, {cast:false, recv:false});
-  // open steel shelving above, out of the walkway
-  for(let i=0;i<2;i++) box(F, M2.inoxD, .30,.02,.90, MX4+.15, y0+1.86+i*.38, 12.05, {cast:false});
+  /* open steel rack above the microwave, mounted on the west wall with visible
+     brackets. It used to be two unsupported 0.90-long slabs centred on z 12.05,
+     which straddled the storage/utility wall at 11.995 and read as two black
+     slabs hanging in mid-air with nothing holding them up. */
+  for(let i=0;i<2;i++){
+    const sy = y0 + 1.96 + i*.36;
+    box(F, M2.inoxD, .30,.022,.70, MX4+.16, sy, 11.30, {cast:true});
+    for(const dz of [-.27,.27]){
+      box(F, M2.inox, .26,.018,.018, MX4+.15, sy-.03, 11.30+dz, {cast:false});
+      box(F, M2.inox, .018,.15,.018, MX4+.035, sy-.10, 11.30+dz, {cast:false});
+    }
+  }
+  // the service rooms have no cove, so the ceiling disc gets a real source
+  { const p = new THREE.PointLight(0xffe2b8, .60, 4.2, 2); p.position.set(6.1, CEIL-.15, 10.9); F.add(p); }
 })();
 
 /* ---- utility (sink, drying rods) ---- */
@@ -1470,6 +1482,7 @@ colliderTag='utility';
   for(let i=0;i<3;i++) cyl(F, M2.inox, .009,.009,1.5, 6.35, 2.05+i*.13, 12.35+i*.16, {rz:Math.PI/2, seg:10, cast:false});
   box(F, M.cushion, .16,.24,.16, 5.30, y0+1.02, 12.42,{cast:false});
   box(F, M2.applW, .14,.20,.14, 5.50, y0+1.00, 12.42,{cast:false});
+  { const p = new THREE.PointLight(0xffe2b8, .60, 4.2, 2); p.position.set(6.1, CEIL-.15, 12.6); F.add(p); }
 })();
 
 
