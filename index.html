@@ -370,6 +370,9 @@ const M = {
   kUpper  : new THREE.MeshStandardMaterial({ color:0xe9dcc7, roughness:.72 }),
   steel   : new THREE.MeshStandardMaterial({ color:0xb9bcc0, roughness:.32, metalness:.75 }),
   chrome  : new THREE.MeshStandardMaterial({ color:0xd7dadd, roughness:.22, metalness:.9 }),
+  // mirror glass: kept low-metalness so it reads silver without an environment
+  // map too — at metalness .9 it rendered jet black outside Realistic mode
+  mirror  : new THREE.MeshStandardMaterial({ color:0xc4d0d6, roughness:.06, metalness:.38 }),
   black   : new THREE.MeshStandardMaterial({ color:0x1b1b1e, roughness:.5 }),
   screen  : new THREE.MeshStandardMaterial({ color:0x0a0d12, roughness:.15, metalness:.3 }),
   walnut  : new THREE.MeshStandardMaterial({ color:0x5e4433, roughness:.55 }),
@@ -853,22 +856,61 @@ function bed(x,z, w,l, ry, throwMat, king=false){
   addCollider(x-ex/2, x+ex/2, z-ez/2, z+ez/2);
   return g;
 }
-function sideTable(x,z){
-  box(F, M.walnut, .42,.45,.4, x,.225,z, {solid:true});
-  cyl(F, M.brass, .02,.02,.26, x,.58,z); sph(F, M.cushion2, .09, x,.76,z,1,.9,1); // lamp
-}
-function wardrobe(x,z,w,ry, mat=M.walnut){
-  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y=ry; F.add(g);
-  box(g, mat, w, 2.15, .6, 0,1.075,0);
-  for(let i=0;i<Math.round(w/.55);i++){
-    const px = -w/2 + .55*i + .275;
-    box(g, M.frame, .015, 1.9, .01, px+.26, 1.05, .305, {cast:false});
-    cyl(g, M.brass, .01,.01,.24, px+.2, 1.1, .315);
+/* ---- BUILT-IN JOINERY ------------------------------------------------------
+   One language for every built-in in the flat, set by the hall's media unit:
+   white lacquer carcass on a recessed plinth with a warm reveal under it,
+   shutters with shadow gaps and slim brass pulls, and a walnut open bay whose
+   every shelf carries an LED strip in its reveal.
+   The unit's FRONT is local +z, so ry=0 faces south and ry=PI faces north. */
+function joineryRun(x, z, w, ry, o={}){
+  const H = o.h ?? 2.42, D = o.d ?? .60, PL = .10;
+  const openW = Math.min(o.open ?? 0, w - .40);
+  const atRight = (o.openAt ?? 'right') === 'right';
+  const doorW = w - openW;
+  const g = new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry; F.add(g);
+  const fz = D/2, bodyH = H-PL, bodyY = PL + bodyH/2;
+  box(g, M.frame, w-.04, PL, D-.09, 0, PL/2, -.045, {cast:false});                    // recessed plinth
+  box(g, M.coveGlow, w-.30, .018,.02, 0, PL-.02, fz-.06, {cast:false, recv:false});
+  const dx0 = atRight ? -w/2 : -w/2 + openW;
+  /* carcass covers ONLY the shuttered part — a solid box across the full width
+     would seal the open bay inside it and the lit shelves would never be seen */
+  box(g, M.white, doorW, bodyH, D, dx0 + doorW/2, bodyY, 0, {cast:true});
+  const n = Math.max(1, Math.round(doorW/.55)), dw = doorW/n;
+  for(let i=0;i<n;i++){                                                               // shutters
+    const cwx = dx0 + dw*(i+.5);
+    box(g, M.white, dw-.014, bodyH-.06, .022, cwx, bodyY, fz+.011, {cast:false});
+    box(g, M.brass, .018,.66,.022, cwx + dw/2 - .075, PL+bodyH*.53, fz+.030, {cast:false});
   }
-  const c=Math.cos(ry), s=Math.sin(ry);
-  const hw=w/2, hd=.3;
-  addCollider(x-Math.abs(c*hw)-Math.abs(s*hd), x+Math.abs(c*hw)+Math.abs(s*hd),
-              z-Math.abs(s*hw)-Math.abs(c*hd), z+Math.abs(s*hw)+Math.abs(c*hd));
+  if(openW > .24){                                                                    // lit walnut bay
+    const ox = atRight ? w/2 - openW/2 : -w/2 + openW/2;
+    const oEdge = atRight ? w/2 - .025 : -w/2 + .025;
+    box(g, M.white, .05, bodyH, D, oEdge, bodyY, 0, {cast:true});                     // outer side
+    box(g, M.white, openW, .05, D, ox, PL+.025, 0, {cast:false});                     // bay bottom
+    box(g, M.white, openW, .05, D, ox, H-.025, 0, {cast:false});                      // bay top
+    box(g, M.walnut, openW-.10, bodyH-.10, .03, ox, bodyY, -D/2+.03, {cast:false});   // walnut back
+    const ns = o.shelves ?? 4, span = H-PL-.60;
+    for(let i=0;i<ns;i++){
+      const sy = PL + .40 + i*span/Math.max(1,ns-1);
+      box(g, M.walnut, openW-.10, .04, D-.06, ox, sy, 0, {cast:true});
+      box(g, M.coveGlow, openW-.24, .016,.02, ox, sy-.036, fz-.07, {cast:false, recv:false});
+    }
+  }
+  box(g, M.walnut, w+.03, .045, D+.02, 0, H+.02, 0, {cast:false});                    // cornice
+  const c=Math.abs(Math.cos(ry)), s=Math.abs(Math.sin(ry)), hw=w/2, hd=D/2;
+  addCollider(x-c*hw-s*hd, x+c*hw+s*hd, z-s*hw-c*hd, z+s*hw+c*hd);
+  return g;
+}
+/* floating bedside box — walnut, off the floor, warm reveal under. Front +z. */
+function sideTable(x, z, ry=0){
+  const g = new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry; F.add(g);
+  box(g, M.walnut, .46,.30,.40, 0,.44,0, {cast:true});
+  box(g, M.brass, .20,.016,.022, 0,.44,.21, {cast:false});
+  box(g, M.coveGlow, .34,.014,.02, 0,.283,.12, {cast:false, recv:false});
+  cyl(g, M.brass, .018,.018,.30, -.13,.74,-.04, {seg:12});                             // slim lamp
+  cyl(g, M.linenSh, .085,.065,.14, -.13,.96,-.04, {seg:18});
+  cyl(g, M.coveGlow, .055,.055,.012, -.13,.892,-.04, {seg:14, cast:false});
+  const c=Math.abs(Math.cos(ry)), s=Math.abs(Math.sin(ry));
+  addCollider(x-c*.23-s*.20, x+c*.23+s*.20, z-s*.23-c*.20, z+s*.23+c*.20);
 }
 
 /* ---- living room ---- */
@@ -936,18 +978,10 @@ colliderTag='living';
     addCollider(SX1, CX1, SZ0, CZ1);
   }
 
-  // forest-green accent chair in the west pocket, turned at the TV
-  {
-    const cx=3.00, cz=4.88;
-    const ch = new THREE.Group(); ch.position.set(cx,0,cz); ch.rotation.y=.72; F.add(ch);
-    box(ch, M.accentB1, .68,.34,.68, 0,.21,0, {cast:true});
-    box(ch, M.accentB1, .68,.42,.16, 0,.56,-.26, {cast:true});
-    cyl(ch, M.accentB1, .08,.08,.68, 0,.77,-.26, {rz:Math.PI/2, seg:16, cast:false});
-    for(const s of [-1,1]) cyl(ch, M.accentB1, .08,.08,.66, s*.30,.47,0, {rx:Math.PI/2, seg:16});
-    box(ch, M.cushion2, .52,.09,.52, 0,.42,.03, {cast:false});
-    for(const sx of [-1,1]) for(const sz of [-1,1]) cyl(ch, M.brass, .017,.017,.16, sx*.27,.08,sz*.27,{seg:8});
-    addCollider(cx-.48, cx+.48, cz-.48, cz+.48);
-  }
+  /* No accent chair in the west pocket. One stood at (3.00, 4.88) and its 0.96
+     footprint closed the last 0.11 m between the jhula and the sectional, which
+     is the only route from the hall to the kitchen arch. The hall carries the
+     sectional, the oak table and the jhula; a fourth piece does not fit. */
 
   /* ---- FULL-HEIGHT MEDIA UNIT ----------------------------------------------
      White lacquer carcass, walnut open shelves on warm LED reveals, a continuous
@@ -982,8 +1016,11 @@ colliderTag='living';
     box(F, M.screen, 1.16,.655,.01, TVX, 1.30, zW-.073);
     addCollider(MU0, MU1, zF, zW);
   }
-  // entry side: shoe console + mirror
-  box(F, M.walnut, .35,.95,.9, 7.0,.475,3.3, {solid:true});
+  // entry side: floating shoe console + mirror, same language as the joinery
+  box(F, M.white, .34,.46,.88, 7.02,.62,3.3, {solid:true});
+  box(F, M.walnut, .37,.04,.91, 7.02,.865,3.3, {cast:false});
+  for(const dz of [-.22,.22]) box(F, M.brass, .022,.018,.24, 6.86,.62,3.3+dz, {cast:false});
+  box(F, M.coveGlow, .02,.016,.66, 6.90,.378,3.3, {cast:false, recv:false});
   box(F, M.brass, .02,.7,.5, 7.2,1.65,3.3,{cast:false});
   // art on north wall of living + clock east
   // art on the solid piers of wall A (between the doorways), not across the openings
@@ -1032,12 +1069,23 @@ colliderTag='kitchen';
   cyl(F, M2.inox, .016,.016,.22, KX+.50,1.155,9.22,{rx:Math.PI/2, seg:14, cast:false});
   cyl(F, M2.inox, .013,.013,.07, KX+.50,1.095,9.12,{seg:12, cast:false});
   box(F, M2.inox, .012,.075,.012, KX+.44,1.05, 9.42,{rz:.5, cast:false});
-  // upper cabinets, east wall — shutters with reveals and slim bar handles
-  box(F, M.kUpper, .35,.75,2.5, W_IN-.185,1.85, 8.2);
-  for(let i=0;i<4;i++){
-    const cz = 7.16+i*.62;
-    box(F, M.kUpper, .022,.70,.585, W_IN-.365, 1.85, cz, {cast:false});
-    box(F, M2.inox, .014,.016,.24, W_IN-.385, 1.53, cz+.22, {cast:false});
+  /* upper run, east wall — closed cabinets at each end with a LIT WALNUT OPEN BAY
+     between them, so the kitchen carries the same joinery language as the hall */
+  box(F, M.kUpper, .35,.75,.52, W_IN-.185, 1.85, 7.21);
+  box(F, M.kUpper, .35,.75,.74, W_IN-.185, 1.85, 9.08);
+  for(const [cz,cw] of [[7.21,.46],[9.08,.68]]){
+    box(F, M.kUpper, .022,.70,cw, W_IN-.365, 1.85, cz, {cast:false});
+    box(F, M2.inox, .014,.016,.24, W_IN-.385, 1.53, cz+cw*.36, {cast:false});
+  }
+  { const bz0=7.47, bz1=8.71, bcz=(bz0+bz1)/2, L=bz1-bz0;
+    box(F, M.kUpper, .35,.045,L, W_IN-.185, 2.203, bcz, {cast:false});
+    box(F, M.kUpper, .35,.045,L, W_IN-.185, 1.497, bcz, {cast:false});
+    box(F, M.walnut, .03,.66,L, W_IN-.028, 1.85, bcz, {cast:false});
+    for(let i=0;i<2;i++){
+      const sy = 1.70+i*.34;
+      box(F, M.walnut, .32,.035,L-.03, W_IN-.20, sy, bcz, {cast:true});
+      box(F, M.coveGlow, .26,.014,L-.16, W_IN-.215, sy-.03, bcz, {cast:false, recv:false});
+    }
   }
   box(F, M2.inoxD, .36,.014,2.52, W_IN-.19, 1.475, 8.2, {cast:false});     // under-cabinet strip
   box(F, M.coveGlow, .30,.012,2.40, W_IN-.22, 1.462, 8.2, {cast:false, recv:false});
@@ -1050,6 +1098,12 @@ colliderTag='kitchen';
     box(F, M2.inox, .014,.016,.26, KX-.005, .78, cz+.26, {cast:false});
   }
   box(F, M.frame, .40,.10,2.86, KX+.32, .05, 8.32, {cast:false});
+  box(F, M.coveGlow, .02,.018,2.60, KX+.06, .088, 8.32, {cast:false, recv:false});  // plinth reveal
+  // lit walnut shelf pair on the wall-B stub, over the fruit shelf
+  for(let i=0;i<2;i++){
+    box(F, M.walnut, .58,.03,.22, 6.90, 1.36+i*.36, ZB1+.12, {cast:true});
+    box(F, M.coveGlow, .46,.012,.018, 6.90, 1.335+i*.36, ZB1+.20, {cast:false, recv:false});
+  }
   // aquaguard
   box(F, M2.applW, .16,.40,.28, W_IN-.09, 1.46, 9.52, {cast:false});
   box(F, M2.led, .05,.014,.05, W_IN-.17, 1.60, 9.52, {cast:false, recv:false});
@@ -1065,6 +1119,8 @@ colliderTag='kitchen';
     // carcass + recessed plinth
     box(g, M.kLower, IW, IH-.10, ID, cx, .05+(IH-.10)/2, cz, {cast:true});
     box(g, M.frame,  IW-.10, .10, ID-.10, cx, .05, cz, {cast:false});
+    for(const s of [-1,1])                                            // warm reveal in the plinth
+      box(g, M.coveGlow, IW-.34, .018,.02, cx, .088, cz+s*(ID/2-.07), {cast:false, recv:false});
     // fluted front (south face, under the overhang) + shutter reveals on the north
     for(let i=0;i<24;i++)
       cyl(g, M.kLower, .021,.021, IH-.16, cx-IW/2+.05+i*(IW-.10)/23, .09+(IH-.16)/2, cz+ID/2+.012,
@@ -1170,11 +1226,19 @@ colliderTag='bed1';
   const ch = new THREE.Group(); ch.position.set(1.85,0,1.15); ch.rotation.y=Math.PI; F.add(ch);
   cyl(ch, M.black, .26,.3,.04, 0,.06,0); cyl(ch, M.black, .03,.03,.32, 0,.25,0);
   box(ch, M.fabric2, .46,.1,.46, 0,.46,0); box(ch, M.fabric2, .44,.55,.1, 0,.78,-.2);
-  // shelf above desk + books
-  box(F, M.walnut, 1.0,.03,.22, 1.85,1.7, ZT0+.15,{cast:false});
+  // two lit walnut shelves above the desk + books
+  for(let s=0;s<2;s++){
+    const sy = 1.42 + s*.38;
+    box(F, M.walnut, 1.06,.035,.24, 1.85, sy, ZT0+.15, {cast:true});
+    box(F, M.coveGlow, .92,.014,.02, 1.85, sy-.03, ZT0+.25, {cast:false, recv:false});
+  }
   for(let i=0;i<7;i++) box(F, new THREE.MeshStandardMaterial({color:[0xb0492f,0x28404f,0xd9a441,0x4f7a3a,0x8c5a3b][i%5], roughness:.9}),
-      .05,.26,.16, 1.5+i*.1, 1.85, ZT0+.15);
-  wardrobe(0.78, ZA0-.34, 1.0, 0);          // west of the door lane
+      .05,.26,.16, 1.5+i*.1, 1.57, ZT0+.15);
+  // white drawer pedestal under the desk, brass pull, warm reveal
+  box(F, M.white, .42,.56,.50, 2.03,.38, ZT0+.34, {cast:true});   // clear of the desk leg at 2.32
+  for(let i=0;i<2;i++) box(F, M.brass, .18,.016,.022, 2.03,.24+i*.26, ZT0+.59, {cast:false});
+  box(F, M.coveGlow, .30,.014,.02, 2.03,.098, ZT0+.50, {cast:false, recv:false});
+  joineryRun(0.78, ZA0-.34, 1.0, Math.PI, {open:.34, shelves:3});   // west of the door lane
   // curtain + art
   box(F, M.curtainB1, .1, 1.5, .5, .1, 1.45, 1.15, {cast:false});
   box(F, M.curtainB1, .1, 1.5, .35, .1, 1.45, 2.2, {cast:false});
@@ -1221,17 +1285,28 @@ function toiletRoom(o){
   const bcx=(basinX0+basinX1)/2, bcz=(basinZ0+basinZ1)/2;
   const bw=basinX1-basinX0, bd=basinZ1-basinZ0;
   const eastWall = bcx > (x0+x1)/2;                    // basin against the east wall?
-  box(g, M.granite, bw, .05, bd, bcx, .84, bcz, {solid:true});                 // counter
-  box(g, M.kLower,  bw-.06, .78, bd-.06, bcx, .42, bcz, {cast:false});         // vanity below
+  const outDir = eastWall ? -1 : 1;                    // the vanity's exposed face
+  /* FLOATING VANITY — walnut drawer box lifted off the tiles with a warm reveal
+     under it, stone top and a brass pull: the flat's joinery language, wet-room
+     version. Was a plain kLower block sitting on the floor. */
+  box(g, M.stone3, bw, .05, bd, bcx, .84, bcz, {solid:true});                   // stone top
+  box(g, M.walnut, bw-.05, .34, bd-.05, bcx, .645, bcz, {cast:true});           // 0.475–0.815
+  box(g, M.brass, .022,.018, bd*.55, bcx + outDir*(bw/2-.03), .645, bcz, {cast:false});
+  box(g, M.coveGlow, bw-.18, .016,.02, bcx, .462, bcz, {cast:false, recv:false});
   sph(g, M.porcelain, Math.min(bw,bd)*.42, bcx, .845, bcz, 1,.42,1);           // bowl
   cyl(g, M.porcelain, Math.min(bw,bd)*.40, Math.min(bw,bd)*.34, .10, bcx, .81, bcz, {seg:16, cast:false});
   const tapX = eastWall ? basinX1-.06 : basinX0+.06;
   cyl(g, M.chrome, .014,.014,.22, tapX, .96, bcz, {cast:false});
   cyl(g, M.chrome, .011,.011,.14, tapX - (eastWall?.07:-.07), 1.06, bcz, {rz:Math.PI/2, ry:eastWall?0:Math.PI, cast:false});
-  // mirror + light on the wall behind
-  const mwx = eastWall ? x1-.02 : x0+.02;
-  box(g, M.chrome, .02, .80, bd+.10, mwx, 1.52, bcz, {cast:false});
-  box(g, M.coveGlow, .03, .04, bd, mwx - (eastWall?.03:-.03), 1.95, bcz, {cast:false, recv:false});
+  // BACKLIT MIRROR — halo strip all round, set back off the glass, plus a slim
+  // walnut ledge under it to echo the open shelves elsewhere
+  const mwx = eastWall ? x1-.02 : x0+.02, mfx = mwx + outDir*.026;
+  box(g, M.mirror, .02, .88, bd+.10, mwx, 1.56, bcz, {cast:false});
+  for(const s of [-1,1]){
+    box(g, M.coveGlow, .028,.88,.02, mfx, 1.56, bcz + s*(bd/2+.062), {cast:false, recv:false});
+    box(g, M.coveGlow, .028,.02, bd+.10, mfx, 1.56 + s*.45, bcz, {cast:false, recv:false});
+  }
+  box(g, M.walnut, .10,.03, bd-.02, mwx + outDir*.05, 1.06, bcz, {cast:false});
 
   // ---- shower: overhead arm, mixer, glass screen, floor trap ----
   const onEast = o.showerWall === 'east';
@@ -1246,6 +1321,14 @@ function toiletRoom(o){
   box(g, M.glass,  .014, 1.90, .82, sWall + dir*.60, .95, scrZ, {cast:false});
   box(g, M.chrome, .022, 1.90, .026, sWall + dir*.60, .95, scrZ + (o.screenTowards ?? 1)*.40, {cast:false});
   cyl(g, M.steel, .075,.075,.012, sWall + dir*.34, .012, showerZ, {seg:14, cast:false}); // floor trap
+  // lit shampoo niche recessed into the shower wall
+  { const nz = showerZ - (o.screenTowards ?? 1) * .30;
+    box(g, M.stone3, .05,.50,.38, sWall + dir*.028, 1.30, nz, {cast:false});
+    box(g, M.walnut, .06,.028,.38, sWall + dir*.042, 1.30, nz, {cast:false});
+    box(g, M.coveGlow, .04,.016,.30, sWall + dir*.050, 1.525, nz, {cast:false, recv:false});
+    box(g, M.white, .05,.11,.05, sWall + dir*.075, 1.37, nz-.08, {cast:false});
+    box(g, M.cushion2, .05,.09,.05, sWall + dir*.075, 1.36, nz+.05, {cast:false});
+  }
 
   // ---- geyser + exhaust ----
   box(g, M.white, .34,.34,.36, geyserX, 2.30, ledgeZ + face*.42, {cast:false});
@@ -1268,8 +1351,8 @@ toiletRoom({ x0:MX2, x1:MX3, z0:ZM0, z1:ATZ1, ledgeX0:3.62, ledgeX1:MX3, ledgeZ:
 colliderTag='bed2';
 (function bed2(){
   bed(6.17, 1.42, 1.5, 2.0, -Math.PI/2, M.bedThrow2);              // head east wall
-  sideTable(6.95,.40); sideTable(6.95,2.45);
-  wardrobe(BX4+.34, 1.1, 1.55, Math.PI/2);
+  sideTable(6.98,.40,-Math.PI/2); sideTable(6.98,2.45,-Math.PI/2); // float off the east wall
+  joineryRun(BX4+.34, 1.1, 1.55, Math.PI/2, {open:.42, shelves:4});
   // IDU split AC high on west wall
   box(F, M.white, .28,.29,.9, BX4+.15, 2.35, 2.3, {cast:false});
   box(F, M.glassFr, .02,.03,.8, BX4+.28, 2.28, 2.3, {cast:false});
@@ -1286,9 +1369,10 @@ colliderTag='bed2';
 colliderTag='mbed';
 (function mbed(){
   bed(1.20, 11.45, 1.55, 2.05, Math.PI/2, M.bedThrow);               // king, head west accent wall
-  sideTable(.35,10.32); sideTable(.35,12.68);
-  // wardrobe on the east wall, south of the door's approach lane
-  wardrobe(MX1-.34, 12.35, 1.45, Math.PI/2);
+  sideTable(.24,10.32,Math.PI/2); sideTable(.24,12.68,Math.PI/2);    // float off the west wall
+  // wardrobe on the east wall, south of the door's approach lane. It used to be
+  // turned with its shutters into the wall — ry is now -PI/2 so it opens west.
+  joineryRun(MX1-.34, 12.35, 1.45, -Math.PI/2, {open:.40, shelves:4});
   // IDU on south wall
   box(F, M.white, .9,.29,.28, 1.2,2.35, ZM1-.15, {cast:false});
   // UPS provision (small box low on west wall, per electrical note)
@@ -1321,6 +1405,7 @@ colliderTag='storage';
     box(F, M.walnut, D,   .05, L,    cx,      y0+H-.025, cz, {cast:false});
     box(F, M.walnut, D,   .05, L,    cx,      y0+.12,  cz, {cast:false});
     box(F, M.frame,  D,   .10, L,    cx,      y0+.05,  cz, {cast:false});
+    box(F, M.coveGlow, .02,.016, L-.24, x0+.05, y0+.088, cz, {cast:false, recv:false});
     box(F, M.granite, D+.03, .04, L+.03, cx,  y0+H+.02, cz, {cast:false});
     // light interior back so the glass reads as a display cabinet
     box(F, M.cove, .012, H-.22, L-.11, x1-.056, y0+H/2, cz, {cast:false});
@@ -1366,7 +1451,15 @@ colliderTag='utility';
 (function utility(){
   const y0=.075;
   box(F, M.granite, .74,.05,.50, 5.42, y0+.88, 12.87, {cast:false});
-  box(F, M.kLower,  .62,.84,.46, 5.37, y0+.44, 12.89, {solid:true});
+  box(F, M.kLower,  .62,.74,.46, 5.37, y0+.49, 12.89, {solid:true});
+  box(F, M.frame,   .54,.10,.38, 5.37, y0+.05, 12.93, {cast:false});                 // recessed plinth
+  box(F, M.coveGlow,.40,.016,.02, 5.37, y0+.088, 12.68, {cast:false, recv:false});
+  for(let i=0;i<2;i++) box(F, M.brass, .18,.016,.022, 5.37, y0+.34+i*.28, 12.66, {cast:false});
+  // wall unit + lit walnut shelf over the sink
+  box(F, M.white, .74,.60,.34, 5.42, y0+1.72, 12.97, {cast:true});
+  for(const dx of [-.17,.17]) box(F, M.brass, .022,.30,.018, 5.42+dx, y0+1.72, 12.79, {cast:false});
+  box(F, M.walnut, .74,.035,.24, 5.42, y0+1.34, 13.02, {cast:true});
+  box(F, M.coveGlow, .60,.014,.018, 5.42, y0+1.313, 12.92, {cast:false, recv:false});
   box(F, M2.inoxD, .38,.16,.32, 5.30, y0+.815, 12.87, {cast:false});
   box(F, M2.inox,  .42,.02,.36, 5.30, y0+.90, 12.87, {cast:false});
   for(let i=0;i<4;i++) box(F, M2.inoxD, .20,.006,.012, 5.63, y0+.905, 12.66+i*.07, {cast:false});
@@ -1615,16 +1708,25 @@ colliderTag='decor';
   vase(3.95, .79, 7.80, .16, MS.ceramic); stems(3.95,.94,7.80,6);
   // kitchen counter accents
   potPlant(6.95, 9.60, .62, false);
-  // master bedroom
-  potPlant(2.95, 12.55, .85, true);
-  vase(.35, .46, 10.32, .14, MS.ceramicD); stems(.35,.59,10.32,4);
-  books(.20, .455, 12.62, 3, .4);
-  // study desk
+  /* Bedroom styling. Nightstands now float (tops at 0.59) and each wardrobe has
+     a lit walnut bay — shelves land at y 0.50 / 1.073 / 1.647 / 2.22, on the
+     bay's own axis, so the pieces below are positioned off that, not the wall. */
+  // master — bay runs z 12.675–13.075 on the wardrobe's x axis (3.01)
+  potPlant(0.68, 12.88, .78, true);      // SW corner — it used to stand in the wardrobe's lit bay
+  vase(.30, .59, 10.22, .14, MS.ceramicD); stems(.30,.72,10.22,4);
+  books(.16, .59, 12.60, 3, .4);
+  vase(3.01, 1.093, 12.88, .16, MS.ceramic);
+  books(3.01, 1.667, 12.80, 3, .1);
+  // study — bay runs x 0.28–0.62 at z 2.86, three shelves (0.50 / 1.36 / 2.22)
   books(1.45, .77, 0.30, 4, 0);
   vase(2.20, .765, .34, .12, MS.ceramic); stems(2.20,.885,.34,4);
-  // bedroom 2
+  vase(0.45, 1.383, 2.86, .15, MS.ceramicD);
+  books(0.36, .523, 2.86, 3, .2);
+  // bedroom 2 — bay runs z 0.325–0.745 at x 4.505
   potPlant(4.55, 2.85, .70, false);
-  vase(6.95, .46, 0.40, .13, MS.ceramicD);
+  vase(6.92, .59, 0.34, .13, MS.ceramicD);
+  books(4.44, 1.093, 0.47, 3, .05);
+  vase(4.505, 1.667, 0.60, .15, MS.ceramic);
   // entry corridor
   potPlant(7.72, 3.05, .95, true);
   box(F, MS.brassW, .30,.012,.20, 7.02,.965, 3.30, {cast:false});
@@ -1746,10 +1848,14 @@ colliderTag='decor';
   M.granite.needsUpdate = true;
 
   /* ---- 6b. JHULA — teak swing on brass chains, in the hall ----
-     South-west corner of the living, facing east into the room. Clear of the
-     balcony walk-out (z 4.81–6.02) and of the kitchen arch lane. */
+     It used to hang at (2.05, 5.95), which put its 0.72 × 1.20 footprint INSIDE
+     the kitchen arch (x 1.415–2.90 in wall B) — the sole opening to the whole
+     south half of the flat. With the arch mouth plugged, the kitchen, pooja,
+     master, both toilets, storage, utility and balcony 2 were unreachable on
+     foot. It now hangs mid-hall facing the balcony, leaving a 1.3 m approach to
+     the slider and a 1.0 m approach to the arch. */
   (function jhula(){
-    const cx = 2.05, cz = 5.95;                 // seat centre
+    const cx = 3.10, cz = 5.30;                 // seat centre
     const SW = 1.00, SD = .52, SY = .46;        // seat length (along z), depth, height
     const g = new THREE.Group(); F.add(g);
     const teak = M.walnut, teakL = M.oakF;
@@ -3027,8 +3133,8 @@ const TOUR = [
   { x:0.72, z:4.60, yaw:135, cap:['Looking north-west','Tennis, basketball and the cycling track'], dwell:3.0 },
   { x:1.36, z:5.05, yaw:275 },
   /* 7 POOJA UNIT (through the one kitchen arch) ────────── */
-  { x:2.66, z:5.60, yaw:175 },
-  { x:2.66, z:6.57, yaw:180 },
+  { x:2.35, z:5.60, yaw:175 },     // west of the jhula's new position
+  { x:2.35, z:6.57, yaw:180 },
   { x:2.62, z:9.05, yaw:96,  cap:['Pooja unit','Mandir built against the balcony wall, open to the dining'], dwell:3.4 },
   /* 8 SMALL BALCONY (out and back) ─────────────────────── */
   { x:2.20, z:7.60, yaw:120 },
@@ -3331,6 +3437,39 @@ window.__qaLanes = ()=>{
                by: clearLine||!blocked ? null : window.__qaWhat(blocked.at[0], blocked.at[1]) });
   }
   return { allPass: out.every(o=>o.pass), lanes: out.filter(o=>!o.pass), total: out.length };
+};
+/* ---- reachability: can you actually WALK to every room? --------------------
+   __qaLanes only checks 0.85 m either side of each doorway, so furniture parked
+   in the middle of a room can cut the flat in half and still pass. This floods
+   the walkable floor outward from the front door on a 5 cm grid using the real
+   collide() test, and reports any room the player cannot get to. It is the check
+   that would have caught the jhula sitting in the kitchen arch. */
+window.__qaReach = ()=>{
+  const S=.05, X0=-.3, X1=9.3, Z0=-.3, Z1=13.5;
+  const NX=Math.round((X1-X0)/S), NZ=Math.round((Z1-Z0)/S);
+  const free=new Uint8Array(NX*NZ), seen=new Uint8Array(NX*NZ);
+  for(let i=0;i<NX;i++) for(let j=0;j<NZ;j++)
+    if(!collide(X0+i*S, Z0+j*S)) free[i*NZ+j]=1;
+  const st=[]; const si=Math.round((8.45-X0)/S), sj=Math.round((4.14-Z0)/S);
+  st.push(si*NZ+sj); seen[si*NZ+sj]=1;
+  let reached=0;
+  while(st.length){
+    const c=st.pop(); reached++;
+    const i=(c/NZ)|0, j=c%NZ;
+    for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const a=i+di, b=j+dj;
+      if(a<0||b<0||a>=NX||b>=NZ) continue;
+      const k=a*NZ+b; if(seen[k]||!free[k]) continue;
+      seen[k]=1; st.push(k);
+    }
+  }
+  const bad=[];
+  for(const [k,v] of Object.entries(ROOM_ANCHOR)){
+    const n = Math.round((v[0]-X0)/S)*NZ + Math.round((v[1]-Z0)/S);
+    if(!free[n])      bad.push({ room:k, why:'anchor stands inside furniture' });
+    else if(!seen[n]) bad.push({ room:k, why:'no walkable route from the front door' });
+  }
+  return { allReachable: !bad.length, bad, walkableCells: reached };
 };
 /* every ROOM_ANCHOR and TOUR waypoint must stand in free space */
 window.__qaPoints = ()=>{
