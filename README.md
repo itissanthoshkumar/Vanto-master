@@ -49,6 +49,11 @@ end of Tower B**, so the balcony looks west over the tennis court, the water
 body, the fountain and the clubhouse, and north over the football ground.
 Compass in model space: `-x` west, `+x` east, `-z` north, `+z` south.
 
+Every built-in — the hall media unit, all three wardrobes, the kitchen uppers,
+both toilet vanities, the utility and the entry console — is built from one
+joinery language: white lacquer carcass on a recessed plinth with a warm reveal,
+brass pulls, and a walnut open bay with an LED strip in every shelf reveal.
+
 Furniture is laid out to the same dimensions, and where the room is tight the
 layout says so rather than pretending otherwise. The living room is only 3.20 m
 from the door wall to the media wall, and the sofa's back cannot come north of
@@ -69,6 +74,7 @@ Open the console and call:
 
 | Hook | Checks |
 |---|---|
+| `__qaReach()` | floods the floor from the front door — every room must be walkable to |
 | `__qaLanes()` | every doorway has a clear walking lane |
 | `__qaLegs()` | no tour leg crosses a wall |
 | `__qaPoints()` | no viewpoint sits inside furniture |
