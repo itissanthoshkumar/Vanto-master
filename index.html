@@ -2,14 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sashtii Nila - Yum · Trifecta Vanto — Interactive 3D Walkthrough</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html,body { height:100%; overflow:hidden; background:#0d0f12; }
-  body { font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:#f5f1e8; }
+  html,body { height:100%; overflow:hidden; background:#0d0f12; overscroll-behavior:none; }
+  body { font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:#f5f1e8;
+         -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
   #app { position:fixed; inset:0; }
-  #app canvas { display:block; }
+  /* touch-action:none is what stops the browser stealing the gesture for scroll
+     or pinch-zoom before our handlers ever see it */
+  #app canvas { display:block; touch-action:none; }
+  /* on-screen movement stick — sits idle so a thumb knows where to land, and
+     jumps to wherever you actually press inside the move zone */
+  #stick { position:fixed; width:120px; height:120px; margin:-60px 0 0 -60px; border-radius:50%;
+           border:2px solid rgba(255,255,255,.30); background:rgba(18,16,12,.22);
+           z-index:30; pointer-events:none; display:none;
+           box-shadow:0 6px 24px rgba(0,0,0,.30); transition:opacity .18s; }
+  #stick.idle { opacity:.42; }
+  #stick i { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px;
+             border-radius:50%; background:rgba(255,255,255,.78);
+             box-shadow:0 2px 10px rgba(0,0,0,.32); }
 
   .glass { background:rgba(22,20,17,.78); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
            border:1px solid rgba(255,255,255,.07); border-radius:14px; }
@@ -213,6 +226,7 @@
 
 <div id="hint" class="glass">W A S D move · mouse or drag to look · Shift faster · click the floor map to jump rooms</div>
 <div id="crosshair"></div>
+<div id="stick"><i></i></div>
 <div id="tourCard" class="glass"><b></b><span></span></div>
 
 <div id="recDot" class="glass"><i></i>RECORDING</div>
@@ -3321,10 +3335,14 @@ function setMode(m, instant=false){
   $('#modeBtn').textContent = m==='walk' ? 'Overview' : 'Walk';
   $('#mapMode').textContent = m.toUpperCase();
   const walkUI = m==='walk' && !tour.on;
-  $('#crosshair').style.display = walkUI ? 'block' : 'none';
-  $('#hint').style.display = walkUI ? 'block' : 'none';
-  camera.fov = m==='walk' ? 72 : 55; camera.updateProjectionMatrix();
+  /* these are inline styles, so they beat the phone media query — the desktop
+     "W A S D · drag to look" bar was reappearing on mobile because of it */
+  const roomy = innerWidth > 760;
+  $('#crosshair').style.display = (walkUI && !IS_TOUCH) ? 'block' : 'none';
+  $('#hint').style.display = (walkUI && roomy) ? 'block' : 'none';
+  fitFov();                       // NOT a bare camera.fov = — see fitFov
   applyRoof();
+  stickIdle();
   if(m==='walk'){
     if(instant){
       camera.position.set(walk.x, EYE, walk.z);
@@ -3495,7 +3513,8 @@ $('#startTour').onclick = ()=> startTour();
 
 $('#startWalk').onclick = ()=>{ hideIntro(); setMode('walk', true); renderer.domElement.requestPointerLock?.(); };
 $('#startOver').onclick = ()=>{ hideIntro(); setMode('overview', true); };
-function hideIntro(){ state.intro=false; const i=$('#intro'); i.style.opacity=0; setTimeout(()=>i.style.display='none',480); }
+function hideIntro(){ state.intro=false; const i=$('#intro'); i.style.opacity=0;
+  setTimeout(()=>{ i.style.display='none'; stickIdle(); },480); }
 
 /* ---- unified input: pointer lock, drag-look fallback, orbit, touch ---- */
 let dragging=false, lookDrag=false, px0=0, py0=0, dragDist=0;
@@ -3518,8 +3537,12 @@ renderer.domElement.addEventListener('pointerdown', e=>{
   if(tour.on){ stopTour(); return; }
   if(glide.on) finishGlide();
   px0=e.clientX; py0=e.clientY; dragDist=0;
+  /* mouse only — touch is handled by the touch* listeners below. Letting touch
+     through here made overview orbit apply TWICE per drag, once from
+     pointermove and once from touchmove, which is why it felt twitchy. */
+  if(e.pointerType!=='mouse') return;
   if(state.mode==='overview') dragging=true;
-  else if(document.pointerLockElement!==renderer.domElement && e.pointerType==='mouse') lookDrag=true;
+  else if(document.pointerLockElement!==renderer.domElement) lookDrag=true;
 });
 addEventListener('pointermove', e=>{
   const dx=e.clientX-px0, dy=e.clientY-py0;
@@ -3547,21 +3570,52 @@ renderer.domElement.addEventListener('wheel', e=>{
   if(state.mode!=='overview'||state.intro) return;
   orbit.r = Math.max(5.5, Math.min(34, orbit.r + e.deltaY*.012));
 }, {passive:true});
-/* touch: in walk, left 42% = move joystick, rest = look · in overview, drag orbits + pinch zooms */
+/* ---- touch ------------------------------------------------------------------
+   Walk mode: a VISIBLE stick in the lower-left drives movement, anywhere else
+   drags to look. The stick used to be an invisible "left 42% of the screen"
+   region with no feedback at all, which is why walking on a phone was guesswork.
+   It now rests at a fixed spot so a thumb knows where to go, and re-centres on
+   wherever you actually press inside the zone.
+   Overview: one finger orbits, two pinch to zoom. */
+const stickEl = $('#stick'), stickKnob = stickEl.firstElementChild;
+/* coarse pointer OR a real touch digitiser — covers phones, tablets and touch
+   laptops. ?touch forces it on for testing from a desktop browser. */
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches
+              || navigator.maxTouchPoints > 0
+              || /[?&]touch/.test(location.search);
+const STICK_R = 54, STICK_DEAD = 8;
+function stickHome(){ return [Math.min(98, innerWidth*.24), innerHeight - 118]; }
+function stickIdle(){
+  if(!IS_TOUCH || state.mode!=='walk' || state.intro || tour.on){ stickEl.style.display='none'; return; }
+  const [hx,hy] = stickHome();
+  stickEl.style.display='block'; stickEl.classList.add('idle');
+  stickEl.style.left = hx+'px'; stickEl.style.top = hy+'px';
+  stickKnob.style.transform = 'translate(0px,0px)';
+}
+function stickGrab(x,y){
+  stickEl.style.display='block'; stickEl.classList.remove('idle');
+  stickEl.style.left = x+'px'; stickEl.style.top = y+'px';
+  stickKnob.style.transform = 'translate(0px,0px)';
+}
+/* the move zone: left 46% of the width, clear of the top toolbar strip */
+function inMoveZone(t){ return t.clientX < innerWidth*.46 && t.clientY > 132; }
+
 let pinchD=0;
 renderer.domElement.addEventListener('touchstart', e=>{
   if(state.intro) return;
-  if(tour.on){ stopTour(); return; }
+  if(tour.on){ stopTour(); stickIdle(); return; }
   if(glide.on) finishGlide();
+  if(state.mode==='walk') e.preventDefault();
   for(const t of e.changedTouches){
-    if(state.mode==='walk' && t.clientX < innerWidth*.42 && touch.moveId<0){
+    if(state.mode==='walk' && touch.moveId<0 && inMoveZone(t)){
       touch.moveId=t.identifier; touch.mx0=t.clientX; touch.my0=t.clientY;
+      stickGrab(t.clientX, t.clientY);
     } else if(touch.lookId<0){ touch.lookId=t.identifier; touch.lx=t.clientX; touch.ly=t.clientY; }
   }
-}, {passive:true});
+}, {passive:false});
 renderer.domElement.addEventListener('touchmove', e=>{
   if(state.intro) return;
-  if(state.mode==='walk') e.preventDefault();
+  e.preventDefault();
   if(e.touches.length===2 && state.mode==='overview'){
     const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
     if(pinchD) orbit.r = Math.max(5.5, Math.min(34, orbit.r - (d-pinchD)*.03));
@@ -3569,13 +3623,20 @@ renderer.domElement.addEventListener('touchmove', e=>{
   }
   for(const t of e.changedTouches){
     if(t.identifier===touch.moveId){
-      touch.mx = Math.max(-1, Math.min(1, (t.clientX-touch.mx0)/60));
-      touch.mz = Math.max(-1, Math.min(1, -(t.clientY-touch.my0)/60));
+      const dx=t.clientX-touch.mx0, dy=t.clientY-touch.my0, d=Math.hypot(dx,dy);
+      if(d < STICK_DEAD){ touch.mx=0; touch.mz=0; }
+      else {
+        // analogue ramp out of the dead zone, clamped at the ring
+        const k = Math.min(1, (d-STICK_DEAD)/(STICK_R-STICK_DEAD)) / d;
+        touch.mx = dx*k; touch.mz = -dy*k;
+      }
+      const c = d>STICK_R ? STICK_R/d : 1;
+      stickKnob.style.transform = `translate(${dx*c}px,${dy*c}px)`;
     } else if(t.identifier===touch.lookId){
       const dx=t.clientX-touch.lx, dy=t.clientY-touch.ly;
       if(state.mode==='walk'){
-        walk.yaw -= dx*.006;
-        walk.pitch = Math.max(-1.35, Math.min(1.35, walk.pitch - dy*.006));
+        walk.yaw -= dx*.0045;
+        walk.pitch = Math.max(-1.35, Math.min(1.35, walk.pitch - dy*.0045));
       } else {
         orbit.theta -= dx*.006; orbit.phi = Math.max(.12, Math.min(1.5, orbit.phi + dy*.005));
       }
@@ -3583,13 +3644,15 @@ renderer.domElement.addEventListener('touchmove', e=>{
     }
   }
 }, {passive:false});
-renderer.domElement.addEventListener('touchend', e=>{
+function endTouch(e){
   for(const t of e.changedTouches){
-    if(t.identifier===touch.moveId){ touch.moveId=-1; touch.mx=0; touch.mz=0; }
+    if(t.identifier===touch.moveId){ touch.moveId=-1; touch.mx=0; touch.mz=0; stickIdle(); }
     if(t.identifier===touch.lookId) touch.lookId=-1;
   }
   if(e.touches.length<2) pinchD=0;
-}, {passive:true});
+}
+renderer.domElement.addEventListener('touchend', endTouch, {passive:true});
+renderer.domElement.addEventListener('touchcancel', endTouch, {passive:true});
 
 /* collision */
 function collide(x,z){
@@ -3816,6 +3879,7 @@ function updateBar(){
 function startTour(fromStop=0){
   if(tour.on) return;
   hideIntro();
+  stickEl.style.display='none';          // no movement stick while the tour drives
   const f=$('#fade'); f.style.opacity=1;
   setTimeout(()=>{
     const s=TOUR[fromStop];
@@ -3845,6 +3909,7 @@ function stopTour(toWalk=true){
       if(!collide(walk.x+ox, walk.z+oz)){ walk.x+=ox; walk.z+=oz; break; }
     setMode('walk', true);
   }
+  stickIdle();
 }
 
 /* ================= FADE TELEPORT + MAP NAV ================= */
@@ -4154,6 +4219,12 @@ window.__orbitTo = (theta,phi,r,tx,tz)=>{ hideIntro(); stopTour(false); glide.on
   setMode('overview', true); };
 window.__pos = ()=> ({x:+walk.x.toFixed(3), z:+walk.z.toFixed(3), yaw:+walk.yaw.toFixed(3),
   mode:state.mode, tour:tour.on, glide:glide.on});
+/* touch/stick state + a single movement tick, so the on-screen joystick can be
+   driven from a test rather than only by a real thumb */
+window.__touchState = ()=> ({ mx:+touch.mx.toFixed(3), mz:+touch.mz.toFixed(3),
+  moveId:touch.moveId, lookId:touch.lookId, fov:+camera.fov.toFixed(1),
+  knob:stickEl.firstElementChild.style.transform, stick:stickEl.style.display });
+window.__stepOnce = dt => walkStep(dt);
 window.__tour = startTour;
 
 /* ================= LOOP ================= */
@@ -4281,20 +4352,26 @@ setTimeout(()=>{ const l=$('#loading'); l.style.opacity=0; setTimeout(()=>l.remo
 if(/[?&]autoplay/.test(location.search))
   setTimeout(()=>{ if(state.intro && !tour.on) startTour(0); }, 1500);
 
-/* Three's FOV is VERTICAL. On a portrait phone (aspect ≈ 0.46) a fixed 62°
-   vertical leaves only ~31° horizontal, so rooms render as a claustrophobic
-   slit. Widen the vertical FOV as the frame narrows to keep the horizontal
-   field usable, and leave landscape/desktop exactly as it was. */
-function fitCamera(){
-  const a = innerWidth / innerHeight;
-  // 76 is the ceiling — beyond that you just see more ceiling and floor
-  camera.fov = a >= 1.1 ? 62 : Math.min(76, 62 * Math.min(2.0, 1.1 / a));
+/* Three's FOV is VERTICAL. On a portrait phone (aspect ≈ 0.46) the walk FOV of
+   72° vertical leaves only ~37° horizontal, so rooms render as a slit. Widen
+   the vertical FOV as the frame narrows, capped at +18% so you don't just get
+   more ceiling and floor. Landscape and desktop are untouched.
+   setMode must call fitFov() rather than assigning camera.fov, or every mode
+   switch throws the portrait correction away. */
+/* innerWidth/innerHeight can both be 0 for a frame — a hidden tab, or a phone
+   mid-rotation. 0/0 is NaN, and a NaN fov/aspect corrupts the projection
+   matrix permanently (black screen, no error). Clamp before dividing. */
+function viewportWH(){ return [Math.max(1, innerWidth||0), Math.max(1, innerHeight||0)]; }
+function fitFov(){
+  const [w,h] = viewportWH(), a = w/h;
+  const base = state.mode === 'walk' ? 72 : 55;
+  camera.fov = a >= 1.1 ? base : Math.min(base*1.18, base * Math.min(2.0, 1.1/a));
   camera.aspect = a; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
 }
+function fitCamera(){ const [w,h] = viewportWH(); fitFov(); renderer.setSize(w,h); stickIdle(); }
 fitCamera();
 addEventListener('resize', fitCamera);
-addEventListener('orientationchange', ()=> setTimeout(fitCamera, 120));
+addEventListener('orientationchange', ()=> setTimeout(fitCamera, 150));
 </script>
 </body>
 </html>
