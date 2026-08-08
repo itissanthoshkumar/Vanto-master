@@ -150,6 +150,7 @@
   <button class="tbtn" id="ghostBtn">Ghost: off</button>
   <button class="tbtn on" id="netBtn">Pigeon net: on</button>
   <button class="tbtn" id="twoBtn">2×1BHK: off</button>
+  <button class="tbtn" id="festBtn">Griha pravesh</button>
   <button class="tbtn" id="resetBtn">Reset</button>
 </div>
 
@@ -1961,6 +1962,171 @@ box(ghost2G, M.ghostRed, .1, DOORH, 1.0, 7.26, DOORH/2, 8.0, {cast:false,recv:fa
 const sealFrame = new THREE.Mesh(new THREE.BoxGeometry(.06, DOORH+.1, 1.12), new THREE.MeshBasicMaterial({color:0xff6a55, wireframe:true}));
 sealFrame.position.set(7.26, DOORH/2, 8.0); ghost2G.add(sealFrame);
 
+/* ================= GRIHA PRAVESH =================
+   Housewarming dressing, off by default and toggled from the toolbar. Toran of
+   mango leaf and marigold over every opening, rangoli at the door and in the
+   hall, brass kalash, banana stems flanking the entrance, diyas along the
+   thresholds and petals down the entry path.
+   Nothing here takes a collider — it is all decor, so it can never block a walk. */
+const festG = new THREE.Group(); world.add(festG); festG.visible = false;
+(function grihaPravesh(){
+  const FM = {
+    marigold : new THREE.MeshStandardMaterial({ color:0xf2921d, roughness:.86 }),
+    marigoldD: new THREE.MeshStandardMaterial({ color:0xd9661f, roughness:.86 }),
+    genda    : new THREE.MeshStandardMaterial({ color:0xf3c02f, roughness:.86 }),
+    leaf     : new THREE.MeshStandardMaterial({ color:0x2f6b32, roughness:.9 }),
+    leafL    : new THREE.MeshStandardMaterial({ color:0x4c8c3a, roughness:.9 }),
+    rose     : new THREE.MeshStandardMaterial({ color:0xc1304c, roughness:.9 }),
+    petalP   : new THREE.MeshStandardMaterial({ color:0xe06a86, roughness:.9 }),
+    chalk    : new THREE.MeshStandardMaterial({ color:0xf7f2e6, roughness:.9 }),
+    kumkum   : new THREE.MeshStandardMaterial({ color:0xaf1f2c, roughness:.95 }),
+    turmeric : new THREE.MeshStandardMaterial({ color:0xdda32a, roughness:.95 }),
+    terra    : new THREE.MeshStandardMaterial({ color:0xa5603c, roughness:.95 }),
+    coconut  : new THREE.MeshStandardMaterial({ color:0x6d4b2e, roughness:.9 }),
+    stem     : new THREE.MeshStandardMaterial({ color:0x5f8f42, roughness:.9 }),
+    flame    : new THREE.MeshStandardMaterial({ color:0xffe0a0, emissive:0xff9a24, emissiveIntensity:2.4 }),
+    cord     : new THREE.MeshStandardMaterial({ color:0x8a6a3a, roughness:.95 }),
+  };
+  const fb=(m,w,h,d,x,y,z,o={})=>box(festG,m,w,h,d,x,y,z,{cast:false,...o});
+  const fc=(m,a,b,h,x,y,z,o={})=>cyl(festG,m,a,b,h,x,y,z,{cast:false,...o});
+  const fs=(m,r,x,y,z,sx,sy,sz)=>sph(festG,m,r,x,y,z,sx,sy,sz);
+  let _s = 20260808;                                    // fixed seed, so it renders the same every load
+  const rnd = ()=> (_s = (_s*1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+
+  /* marigold rope, sagging between two points */
+  function garland(x0,z0,x1,z1,y,sag=.20){
+    const L = Math.hypot(x1-x0, z1-z0), N = Math.max(6, Math.round(L/.075));
+    for(let i=0;i<=N;i++){
+      const t=i/N, dip = Math.sin(Math.PI*t)*sag;
+      fs([FM.marigold,FM.genda,FM.marigoldD][i%3], .034+(i%2)*.007,
+         x0+(x1-x0)*t, y-dip, z0+(z1-z0)*t, 1,.86,1);
+    }
+  }
+  /* toran over a doorway: cord, hanging mango leaves, marigold drops */
+  function toran(axis, fixed, a, b, y){
+    const alongX = axis==='x';
+    const P = t => alongX ? [a+(b-a)*t, fixed] : [fixed, a+(b-a)*t];
+    const thin = alongX ? [.44,1.3,.20] : [.20,1.3,.44];
+    if(alongX) fb(FM.cord, b-a, .012,.012, (a+b)/2, y, fixed);
+    else       fb(FM.cord, .012,.012, b-a, fixed, y, (a+b)/2);
+    const N = Math.max(9, Math.round((b-a)/.068));
+    for(let i=0;i<=N;i++){
+      const t=i/N, [px,pz]=P(t), dip = Math.sin(Math.PI*t)*.045;
+      const ll = .068 + (i%3)*.014;
+      fs(i%2?FM.leaf:FM.leafL, ll, px, y-dip-ll*.95, pz, thin[0],thin[1],thin[2]);
+      if(i%2===0) fs(FM.marigold, .026, px, y-dip-ll*2.15, pz, 1,.85,1);
+    }
+  }
+  /* rangoli: concentric petal rings on the floor */
+  function rangoli(cx, cz, R, y=0){
+    fc(FM.chalk, R*.15, R*.15, .006, cx, y+.004, cz, {seg:24, recv:false});
+    fs(FM.kumkum, R*.07, cx, y+.008, cz, 1,.16,1);
+    const rings = [[.34,8,FM.kumkum],[.56,14,FM.turmeric],[.78,20,FM.marigold],[1.0,26,FM.chalk]];
+    for(const [f,n,mat] of rings)
+      for(let i=0;i<n;i++){
+        const ang = i/n*Math.PI*2 + f;
+        fs(mat, R*.115, cx+Math.cos(ang)*R*f, y+.008, cz+Math.sin(ang)*R*f, 1,.10,1);
+      }
+  }
+  function diya(x,z,y=0){
+    fc(FM.terra, .046,.030,.026, x, y+.013, z, {seg:12});
+    fc(FM.terra, .052,.052,.007, x, y+.029, z, {seg:12, recv:false});
+    fs(FM.flame, .019, x, y+.050, z, .68,1.7,.68);
+    fs(FM.flame, .009, x, y+.072, z, .5,1.4,.5);
+  }
+  function diyaRow(x0,z0,x1,z1,n,y=0){
+    for(let i=0;i<n;i++){ const t=n===1?.5:i/(n-1); diya(x0+(x1-x0)*t, z0+(z1-z0)*t, y); }
+  }
+  /* brass kalash: pot, mango leaves round the rim, coconut on top */
+  function kalash(x,z,y=0,s=1){
+    fc(M.brass, .085*s,.052*s,.13*s, x, y+.065*s, z, {seg:18, cast:true});
+    fc(M.brass, .104*s,.085*s,.10*s, x, y+.18*s,  z, {seg:18, cast:true});
+    fc(M.brass, .060*s,.085*s,.05*s, x, y+.255*s, z, {seg:18});
+    fc(M.brass, .074*s,.060*s,.018*s, x, y+.289*s, z, {seg:18});
+    fb(FM.kumkum, .026*s,.005*s,.026*s, x, y+.13*s, z);
+    for(let i=0;i<7;i++){
+      const a = i/7*Math.PI*2;
+      const l = fs(FM.leaf, .052*s, x+Math.cos(a)*.064*s, y+.325*s, z+Math.sin(a)*.064*s, .45,1.5,.45);
+      l.rotation.set(Math.sin(a)*.55, -a, Math.cos(a)*.55);
+    }
+    fs(FM.coconut, .055*s, x, y+.40*s, z, 1,1.16,1);
+  }
+  /* banana stem, tied with turmeric string — flanks the main door */
+  function bananaStem(x,z,h){
+    fc(FM.stem, .052,.078,h, x, h/2, z, {seg:12, cast:true});
+    fc(FM.turmeric, .056,.056,.022, x, h*.34, z, {seg:12});
+    fc(FM.kumkum,  .058,.058,.014, x, h*.30, z, {seg:12});
+    for(let i=0;i<6;i++){
+      const a = i/6*Math.PI*2 + .5, ly = h - .08 + i*.07;
+      const l = fs(FM.leafL, .23, x+Math.cos(a)*.13, ly, z+Math.sin(a)*.13, .26,.075,1.25);
+      l.rotation.y = -a; l.rotation.z = .34 + (i%2)*.14;
+    }
+  }
+  function petals(x0,x1,z0,z1,n){
+    for(let i=0;i<n;i++){
+      const p = fs([FM.marigold,FM.genda,FM.rose,FM.petalP][i%4], .027,
+                   x0+(x1-x0)*rnd(), .006, z0+(z1-z0)*rnd(), 1,.14,.62);
+      p.rotation.y = rnd()*6.283;
+    }
+  }
+
+  /* ---- the entrance, where a griha pravesh actually happens ---- */
+  toran('z', 7.40, 3.62, 4.66, 2.06);
+  bananaStem(7.56, 3.40, 1.86); bananaStem(7.56, 4.88, 1.86);
+  rangoli(8.45, 4.14, .42);        // clear of the door mat, which ends at x 7.95
+  kalash(7.56, 5.20, 0, 1.15);
+  diyaRow(7.72, 3.60, 8.52, 3.60, 3); diyaRow(7.72, 4.68, 8.52, 4.68, 3);
+  garland(7.42, 3.55, 7.42, 4.73, 2.02, .10);
+  petals(7.40, 8.90, 3.30, 5.00, 26);
+  fb(FM.kumkum, .02,.10,.10, 7.30, 1.32, 3.60);          // swastik + kumkum on the jamb
+  fb(FM.kumkum, .02,.10,.10, 7.30, 1.32, 4.68);
+
+  /* ---- every internal opening gets a toran ---- */
+  toran('x', 3.258, 1.50, 2.32, 2.06);                   // bedroom 1 / study
+  toran('x', 3.258, 2.75, 3.50, 2.06);                   // common toilet
+  toran('x', 3.258, 4.35, 5.15, 2.06);                   // bedroom 2
+  toran('x', 6.573, 1.415, 2.90, 2.14);                  // kitchen arch
+  toran('x', 9.888, 2.42, 3.28, 2.06);                   // master bedroom
+  toran('z', 3.408, 9.945, 10.765, 2.06);                // attached toilet
+  toran('z', 1.358, 3.60, 6.02, 2.14);                   // balcony 1
+  toran('z', 1.358, 6.69, 7.59, 2.14);                   // balcony 2
+
+  /* ---- hall ---- */
+  rangoli(2.35, 4.70, .55);
+  diyaRow(3.06, 6.32, 5.74, 6.32, 6, .745);              // along the media unit's base top
+  diya(4.05, 5.62, .938); diya(4.65, 5.62, .938);        // on the coffee table
+  garland(3.02, 6.30, 5.78, 6.30, 2.44, .16);            // swagged over the media unit
+  petals(1.60, 3.30, 4.00, 6.30, 22);
+  { const p = new THREE.PointLight(0xffb35e, .9, 3.6, 2); p.position.set(2.35, .55, 4.70); festG.add(p); }
+
+  /* ---- pooja: the heart of the day ---- */
+  garland(1.50, 8.36, 1.50, 9.75, 2.18, .14);
+  garland(2.02, 8.36, 2.02, 9.75, 2.18, .14);
+  toran('x', 8.30, 1.44, 2.06, 2.16);
+  diyaRow(1.62, 8.55, 1.62, 9.55, 4, .48);
+  diyaRow(1.98, 8.55, 1.98, 9.55, 4, .48);
+  kalash(1.72, 9.05, .48, .85);
+  petals(1.45, 2.06, 8.30, 9.80, 16);
+  { const p = new THREE.PointLight(0xffb35e, 1.1, 3.2, 2); p.position.set(1.80, .95, 9.05); festG.add(p); }
+
+  /* ---- kitchen: kalash on the peninsula, garland on the arch ---- */
+  kalash(3.30, 6.95, .938, .8);
+  garland(1.50, 6.60, 2.82, 6.60, 2.30, .12);
+
+  /* ---- balcony railings ---- */
+  garland(.10, 3.50, .10, 4.90, 1.06, .13);
+  garland(.10, 4.90, .10, 6.30, 1.06, .13);
+  garland(.10, 6.85, .10, 8.25, 1.06, .13);
+  garland(.10, 8.25, .10, 9.65, 1.06, .13);
+  diyaRow(.30, 3.60, .30, 6.20, 5, .13);
+  diyaRow(.30, 6.95, .30, 9.55, 5, .13);
+
+  /* ---- bedrooms, lightly ---- */
+  petals(4.60, 6.90, .80, 2.20, 14);                     // bedroom 2
+  petals(.35, 2.10, 10.80, 12.20, 14);                   // master
+  diya(6.98, .40, .59); diya(.24, 10.32, .59);
+})();
+
 /* ================= EXTERIOR · TRIFECTA VANTO MASTERPLAN =================
    The flat is on the 14th floor of a G+24 tower, so the world below sits
    GROUND_Y metres down and the balconies look west over the 12.5-acre site:
@@ -2818,7 +2984,7 @@ function roomAt(x,z){
 /* ================= STATE / CONTROLS ================= */
 const state = {
   mode:'overview', labels:true, roofManual:null, evening:false,
-  ghost:false, net:true, two:false, intro:true, amen:false, real:false,
+  ghost:false, net:true, two:false, intro:true, amen:false, real:false, fest:false,
 };
 const walk = { x:8.45, z:4.14, yaw:Math.PI/2, pitch:0, keys:{} };
 const touch = { mx:0, mz:0, moveId:-1, lookId:-1, mx0:0, my0:0, lx:0, ly:0 };
@@ -2900,6 +3066,10 @@ function setNet(on){
   $('#netBtn').textContent = 'Pigeon net: ' + (on?'on':'off');
   $('#netBtn').classList.toggle('on', on);
 }
+function setFest(on){
+  state.fest = on; festG.visible = on;
+  $('#festBtn').classList.toggle('on', on);
+}
 function setTwo(on){
   state.two = on; ghost2G.visible = on;
   $('#twoBtn').textContent = '2×1BHK: ' + (on?'on':'off');
@@ -2908,7 +3078,7 @@ function setTwo(on){
 }
 function reset(){
   stopTour(false); glide.on=false; hideCap(); $('#fade').style.opacity=0;
-  setEvening(false); setGhost(false); setNet(true); setTwo(false); setAmen(false); setRealistic(false);
+  setEvening(false); setGhost(false); setNet(true); setTwo(false); setAmen(false); setRealistic(false); setFest(false);
   state.roofManual = null;
   state.labels = true; $('#labelsBtn').classList.add('on'); labelsEl.style.display='block';
   Object.assign(orbit,{...ORBIT0, dTheta:ORBIT0.theta, dPhi:ORBIT0.phi, dR:ORBIT0.r});
@@ -3001,6 +3171,7 @@ $('#eveBtn').onclick = ()=> setEvening(!state.evening);
 $('#ghostBtn').onclick = ()=> setGhost(!state.ghost);
 $('#netBtn').onclick = ()=> setNet(!state.net);
 $('#twoBtn').onclick = ()=> setTwo(!state.two);
+$('#festBtn').onclick = ()=> setFest(!state.fest);
 $('#resetBtn').onclick = reset;
 $('#startTour').onclick = ()=> startTour();
 
