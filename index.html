@@ -209,8 +209,6 @@
   <button class="tbtn" id="modeBtn">Walk</button>
   <button class="tbtn on" id="labelsBtn">Labels</button>
   <button class="tbtn" id="amenBtn">Amenities</button>
-  <button class="tbtn" id="realBtn">Realistic</button>
-  <button class="tbtn" id="roofBtn">Roof</button>
   <button class="tbtn" id="eveBtn">Evening</button>
   <button class="tbtn" id="ghostBtn">Ghost: off</button>
   <button class="tbtn on" id="netBtn">Pigeon net: on</button>
@@ -1245,8 +1243,7 @@ colliderTag='living';
   // art on the solid piers of wall A (between the doorways), not across the openings
   const art1 = new THREE.Mesh(new THREE.BoxGeometry(.62,.78,.03), new THREE.MeshStandardMaterial({map:arts[0]}));
   art1.position.set(3.92,1.62,ZA1+.02); F.add(art1);
-  const art2 = new THREE.Mesh(new THREE.BoxGeometry(.62,.78,.03), new THREE.MeshStandardMaterial({map:arts[1]}));
-  art2.position.set(6.25,1.62,ZA1+.02); F.add(art2);
+  // (nothing on the 5.15–7.215 pier — that is the kolam panel's wall now)
   const clock = new THREE.Group(); clock.position.set(7.2,2.0,5.5); F.add(clock);
   cyl(clock, M.brass, .22,.22,.03, 0,0,0, {rz:Math.PI/2});
   cyl(clock, M.white, .19,.19,.032, -.005,0,0, {rz:Math.PI/2});
@@ -2027,19 +2024,8 @@ colliderTag='decor';
   potPlant(.62, 6.15, .62, false);
   potPlant(.62, 9.45, .70, true);
 
-  /* ---------- 6. gallery wall in the living ---------- */
-  (function gallery(){
-    const frames = [
-      [ .46,.58, 6.10, 1.62], [ .34,.44, 6.62, 1.78], [ .34,.44, 6.62, 1.28],
-    ];
-    for(const [w,h,x,y] of frames){
-      box(F, MS.brassD, w+.035, h+.035, .022, x, y, ZA1+.014, {cast:false});
-      box(F, MS.paper,  w, h, .006, x, y, ZA1+.026, {cast:false});
-    }
-    box(F, MS.terra, .30,.30,.008, 6.10, 1.70, ZA1+.030, {cast:false});
-    box(F, MS.slate, .22,.14,.008, 6.62, 1.80, ZA1+.030, {cast:false});
-    box(F, MS.sage,  .20,.20,.008, 6.62, 1.26, ZA1+.030, {cast:false});
-  })();
+  /* ---------- 6. (the gallery wall that used to hang on this pier is gone —
+     x 5.15–7.215 is now the teak kolam panel, see KOLAM WALL ART) ---------- */
 
   /* ---------- 7. runners + door mats ---------- */
   const runner = (x,z,w,d,mat)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,.014,d), mat);
@@ -2397,6 +2383,86 @@ const festG = new THREE.Group(); world.add(festG); festG.visible = false;
   petals(.35, 2.10, 10.80, 12.20, 14);                   // master
   diya(6.98, .40, .59); diya(.24, 10.32, .59);
 })();
+
+/* ================= KOLAM WALL ART =================
+   A sikku kolam — the looped, single-stroke South Indian floor drawing — cut in
+   teak and stood proud of the plaster so it throws its own shadow line. Drawn
+   once to a canvas and used as an ALPHA MASK over the wood texture, so the
+   lines are timber and the gaps are wall. */
+const texKolam = (()=>{
+  const S = 1024, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0,0,S,S);                  // black = cut away
+  g.strokeStyle = '#fff'; g.lineCap = 'round'; g.lineJoin = 'round';
+  const cx = S/2, cy = S/2, R = S*0.235;
+  g.lineWidth = S*0.018;          // thick enough that the wood grain reads in it
+  // woven diamond lattice through the middle
+  g.save();
+  g.beginPath();
+  g.moveTo(cx, cy-R); g.lineTo(cx+R, cy); g.lineTo(cx, cy+R); g.lineTo(cx-R, cy);
+  g.closePath(); g.clip();
+  for(let d=-2*R; d<=2*R; d+=S*0.050){
+    g.beginPath(); g.moveTo(cx+d-2*R, cy-2*R); g.lineTo(cx+d+2*R, cy+2*R); g.stroke();
+    g.beginPath(); g.moveTo(cx+d-2*R, cy+2*R); g.lineTo(cx+d+2*R, cy-2*R); g.stroke();
+  }
+  g.restore();
+  // four petals on the axes, three concentric outlines each
+  for(let k=0;k<4;k++){
+    g.save(); g.translate(cx,cy); g.rotate(k*Math.PI/2);
+    for(let o=0;o<3;o++){
+      const w  = S*(0.070 + o*0.031);
+      const L0 = R*0.34 + o*S*0.005;
+      const L1 = R*1.62 + o*S*0.040;
+      g.beginPath();
+      g.moveTo(0,-L0);
+      g.bezierCurveTo(-w, -L0-w*1.15, -w*0.90, -L1+w*0.5, 0, -L1);
+      g.bezierCurveTo( w*0.90, -L1+w*0.5,  w, -L0-w*1.15, 0, -L0);
+      g.stroke();
+    }
+    g.restore();
+  }
+  // spiral eyes in the east and west petals
+  for(const k of [1,3]){
+    g.save(); g.translate(cx,cy); g.rotate(k*Math.PI/2);
+    g.beginPath();
+    for(let i=0;i<=180;i++){
+      const t=i/180, a=t*Math.PI*3.2, rr=S*0.010 + t*S*0.050;
+      const px=Math.cos(a)*rr, py=-R*1.12 + Math.sin(a)*rr;
+      i ? g.lineTo(px,py) : g.moveTo(px,py);
+    }
+    g.stroke(); g.restore();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.NoColorSpace;                          // data map, not colour
+  return t;
+})();
+function kolamPanel(x, y, z, size, ry, lit){
+  const grain = texWood.clone(); grain.repeat.set(1.4,1.4); grain.needsUpdate = true;
+  const mat = new THREE.MeshStandardMaterial({
+    color:0xc79a5c, roughness:.46, map:grain, alphaMap:texKolam,
+    transparent:true, alphaTest:.42, side:THREE.DoubleSide });
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(size,size), mat);
+  p.position.set(x,y,z); p.rotation.y = ry; p.castShadow = true; world.add(p);
+  if(lit){                                                    // slim picture light above
+    const n = [Math.sin(ry), Math.cos(ry)];                   // panel normal
+    box(world, M.brass, .30,.014,.05, x+n[0]*.06, y+size/2+.16, z+n[1]*.06, {cast:false});
+    box(world, M.coveGlow, .24,.012,.02, x+n[0]*.10, y+size/2+.145, z+n[1]*.10,
+        {cast:false, recv:false});
+  }
+  return p;
+}
+/* hero panel on the hall's north wall — the widest unbroken pier in the flat
+   (x 5.15–7.215 between the bedroom.2 door and the corner) */
+kolamPanel(6.18, 1.52, ZA1+.028, 1.16, 0, true);
+/* second, smaller one in the dining, on the stretch of wall C left blank when
+   the a.toilet door moved into the bedroom wall */
+kolamPanel(3.86, 1.50, ZC0-.028, .90, Math.PI, true);
+
+/* reeded teak backdrop behind the jhula, on the hall's east wall */
+for(let z=4.72; z<=6.42; z+=.098)
+  box(F, M.walnut, .042, CEIL-.16, .055, 7.194, (CEIL-.16)/2+.06, z, {cast:false});
+box(F, M.walnut, .07,.05, 1.80, 7.19, CEIL-.10, 5.57, {cast:false});      // head rail
+box(F, M.walnut, .07,.05, 1.80, 7.19, .07, 5.57, {cast:false});           // base rail
 
 /* ================= REALISM PASS · baked-look ambient occlusion =================
    Real rooms are darkest exactly where the shadow map is weakest: the seam
@@ -3327,7 +3393,6 @@ function applyRoof(){
   const v = roofVisible();
   roofG.visible = v;
   if(towerUpG) towerUpG.visible = v;      // the tower above us lifts with the roof
-  $('#roofBtn').classList.toggle('on', v);
 }
 
 function setMode(m, instant=false){
@@ -3424,7 +3489,6 @@ $('#modeBtn').onclick = ()=>{ stopTour(false); setMode(state.mode==='walk'?'over
 $('#labelsBtn').onclick = ()=>{ state.labels=!state.labels; $('#labelsBtn').classList.toggle('on',state.labels);
   labelsEl.style.display = state.labels?'block':'none'; };
 $('#amenBtn').onclick = ()=> setAmen(!state.amen);
-$('#realBtn').onclick = ()=> setRealistic(!state.real);
 
 /* ---- Realistic view: image-based lighting + softer, higher-res shadows ----
    Standard materials pick up a real indoor environment, so metal, glass,
@@ -3452,7 +3516,6 @@ function makeRoomEnv(){
 }
 function setRealistic(on){
   state.real = on;
-  $('#realBtn').classList.toggle('on', on);
   if(on && !envTex){
     const pmrem = new THREE.PMREMGenerator(renderer);
     const src = makeRoomEnv();
@@ -3482,13 +3545,17 @@ function setRealistic(on){
     m.needsUpdate = true;
   }
   sun.intensity = on ? 2.1 : 1.65;               // keep light directional, not foggy
-  // higher-resolution soft shadows
+  /* higher-resolution soft shadows — the realistic look is always on now that
+     its toggle is gone, so the COST is scaled to the device instead: a phone
+     gets a 2048 map and a 2× pixel cap, a desktop 4096 and 2.5×. */
+  const small = innerWidth <= 900 || devicePixelRatio > 2.5;
   if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
-  sun.shadow.mapSize.set(on ? 4096 : 2048, on ? 4096 : 2048);
-  sun.shadow.radius = on ? 2.4 : 1;
+  const sm = on ? (small ? 2048 : 4096) : 2048;
+  sun.shadow.mapSize.set(sm, sm);
+  sun.shadow.radius = on ? (small ? 1.6 : 2.4) : 1;
   renderer.shadowMap.type = on ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   renderer.shadowMap.needsUpdate = true;
-  renderer.setPixelRatio(Math.min(devicePixelRatio, on ? 2.5 : 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, on ? (small ? 2 : 2.5) : 2));
   // env fills the room, so dial the fill lights back to keep contrast
   /* realistic day mix leans on the warm ambient, not the blue sky dome —
      the cool hemi at .38 was greying the cream walls and pale timber */
@@ -3501,7 +3568,6 @@ function setAmen(on){
   amenEl.style.display = on ? 'block' : 'none';
   if(!on) for(const A of amenNodes) A.el.style.display='none';
 }
-$('#roofBtn').onclick = ()=>{ state.roofManual = !roofVisible(); applyRoof(); };
 $('#eveBtn').onclick = ()=> setEvening(!state.evening);
 $('#ghostBtn').onclick = ()=> setGhost(!state.ghost);
 $('#netBtn').onclick = ()=> setNet(!state.net);
@@ -4336,11 +4402,11 @@ buildLabels();
 buildAmenities();
 setEvening(false);
 applyRoof();
-/* Realistic (IBL + soft shadows) is the default look on machines that can
-   afford it; phones keep the lighter renderer. The toggle still works, and
-   ?lowfx forces the light path everywhere. */
-const REAL_DEFAULT = innerWidth > 900 && !/[?&]lowfx/.test(location.search);
-if(REAL_DEFAULT) setRealistic(true);
+/* Realistic (IBL + soft shadows) is now the only look — its toggle is gone from
+   the toolbar. Shadow-map size and pixel ratio scale to the device inside
+   setRealistic. ?lowfx still drops to the cheap path if a machine struggles. */
+const REAL_DEFAULT = !/[?&]lowfx/.test(location.search);
+setRealistic(REAL_DEFAULT);
 setMode('overview', true);
 animate();
 setTimeout(()=>{ const l=$('#loading'); l.style.opacity=0; setTimeout(()=>l.remove(),650); }, 700);
