@@ -1124,25 +1124,26 @@ colliderTag='kitchen';
      fluted caramel-oak base, travertine top with a breakfast overhang, three
      stools tucked under the south face. */
   {
-    const cx = 4.20, cz = 7.80, IW = 2.00, ID = .95, IH = .88;
+    /* Peninsula, not a free island: pushed back against wall B and butted up to
+       the fridge, which sits at x 5.18–5.98. Carcass runs x 3.105–5.055, its
+       north face flush on the wall at z 6.63, so the whole south half of the
+       kitchen band is clear floor instead of a walk-around loop. */
+    const cx = 4.08, cz = 7.105, IW = 1.95, ID = .95, IH = .88;
     const g = new THREE.Group(); F.add(g);
     // carcass + recessed plinth
     box(g, M.kLower, IW, IH-.10, ID, cx, .05+(IH-.10)/2, cz, {cast:true});
     box(g, M.frame,  IW-.10, .10, ID-.10, cx, .05, cz, {cast:false});
-    for(const s of [-1,1])                                            // warm reveal in the plinth
-      box(g, M.coveGlow, IW-.34, .018,.02, cx, .088, cz+s*(ID/2-.07), {cast:false, recv:false});
-    // fluted front (south face, under the overhang) + shutter reveals on the north
+    box(g, M.coveGlow, IW-.34, .018,.02, cx, .088, cz+ID/2-.07, {cast:false, recv:false});
+    // fluted front on the south face, under the overhang. The old shutter
+    // reveals on the north face are gone — that side is buried in the wall now.
     for(let i=0;i<24;i++)
       cyl(g, M.kLower, .021,.021, IH-.16, cx-IW/2+.05+i*(IW-.10)/23, .09+(IH-.16)/2, cz+ID/2+.012,
           {seg:8, cast:false});
-    for(let i=0;i<3;i++){
-      const dx = -IW/2 + .10 + i*(IW-.20)/3 + (IW-.20)/6;
-      box(g, M.kLower, (IW-.26)/3, IH-.22, .02, cx+dx, .12+(IH-.22)/2, cz-ID/2-.012, {cast:false});
-      box(g, M2.inox, .30,.016,.016, cx+dx, IH-.20, cz-ID/2-.03, {cast:false});
-    }
-    // travertine top with a 0.35 breakfast overhang to the south
-    box(g, M.stone2, IW+.10, .055, ID+.45, cx, IH+.03, cz+.175, {cast:true});
-    box(g, M.stone2, IW+.10, .10, .05, cx, IH-.02, cz+ID/2+.42, {cast:false});
+    // travertine top, flush to the wall with a 0.40 breakfast overhang south
+    box(g, M.stone2, IW+.10, .055, ID+.40, cx, IH+.03, cz+.20, {cast:true});
+    box(g, M.stone2, IW+.10, .10, .05, cx, IH-.02, cz+ID/2+.395, {cast:false});
+    // splashback where the top meets the wall
+    box(g, M.ttile, IW+.10, .38, .02, cx, IH+.22, cz-ID/2+.01, {cast:false, recv:false});
     // prep sink + gooseneck tap at the west end
     box(g, M2.inoxD, .42,.16,.34, cx-.62, IH-.02, cz-.06, {cast:false});
     box(g, M2.inox,  .46,.02,.38, cx-.62, IH+.062, cz-.06, {cast:false});
@@ -1155,14 +1156,15 @@ colliderTag='kitchen';
     cyl(g, M.stone3, .07,.09,.20, cx+.80, IH+.155, cz-.14, {seg:16});
     // three stools under the overhang
     for(let i=0;i<3;i++){
-      const sx = cx - .66 + i*.66, sz = cz + ID/2 + .40;
+      const sx = cx - .64 + i*.64, sz = cz + ID/2 + .28;   // tucked under the overhang
       cyl(g, M.walnut, .17,.17,.05, sx, .655, sz, {seg:20, cast:true});
       cyl(g, M.cushion2, .155,.155,.035, sx, .688, sz, {seg:20, cast:false});
       cyl(g, M2.inox, .022,.022,.64, sx, .32, sz, {seg:12});
       cyl(g, M2.inox, .155,.155,.018, sx, .012, sz, {seg:20, cast:false});
       cyl(g, M2.inox, .095,.095,.015, sx, .20, sz, {seg:16, cast:false});   // footring
     }
-    addCollider(cx-IW/2-.08, cx+IW/2+.08, cz-ID/2-.08, cz+ID/2+.55);
+    // north edge clamped to the wall face — the carcass is flush on it now
+    addCollider(cx-IW/2-.08, cx+IW/2+.08, ZK0, cz+ID/2+.48);
   }
   // W.B provision basin on wall C (dining side) between a.toilet & storage doors
   // W.B provision on the wall-C pier between the a.toilet and storage doors
@@ -1641,9 +1643,9 @@ colliderTag='decor';
   skirt(0, ZM0, MX1, ZM1);               // master bedroom
   skirt(CORX0, CORZ0, CORX1, CORZ1);     // corridor
 
-  /* ---------- 2. pendant cluster over the dining table ---------- */
+  /* ---------- 2. pendant cluster over the island's breakfast edge ---------- */
   (function pendants(){
-    const tx = 4.20, tz = 7.72;
+    const tx = 4.08, tz = 7.62;
     box(F, MS.brassD, .58,.02,.05, tx, CEIL-.02, tz, {cast:false});     // ceiling plate
     [-.52, 0, .52].forEach((dx,i)=>{
       const drop = [1.28,1.16,1.34][i], y = CEIL - drop;
@@ -1742,8 +1744,8 @@ colliderTag='decor';
   vase(5.45, 1.465, ZB0-.19, .17, MS.ceramic);
   vase(3.42, 1.865, ZB0-.19, .13, MS.ceramicD);
   books(5.22, 2.265, ZB0-.19, 3, -.06);
-  // dining table centrepiece
-  vase(3.95, .79, 7.80, .16, MS.ceramic); stems(3.95,.94,7.80,6);
+  // island centrepiece — top is now at y 0.938, z 6.63–7.98
+  vase(3.86, .938, 6.92, .16, MS.ceramic); stems(3.86,1.088,6.92,6);
   // kitchen counter accents
   potPlant(6.95, 9.60, .62, false);
   /* Bedroom styling. Nightstands now float (tops at 0.59) and each wardrobe has
@@ -3197,7 +3199,7 @@ const TOUR = [
   { x:2.85, z:9.89, yaw:0 },
   /* 11 KITCHEN ─────────────────────────────────────────── */
   { x:3.30, z:9.30, yaw:300, cap:['Kitchen','19\'0" × 10\'6" — one way in, the arch by the pooja'], dwell:3.0 },
-  { x:3.30, z:9.10, yaw:15,  cap:['The island','Travertine top, breakfast overhang, three stools'], dwell:3.4 },
+  { x:3.40, z:9.15, yaw:337, cap:['The island','Against the wall beside the fridge — breakfast overhang, three stools'], dwell:3.4 },
   { x:5.90, z:8.60, yaw:250, cap:['The 10\'4" counter','Hob + chimney on the return, sink at the utility end'], dwell:2.8 },
   /* 12 STORAGE + 13 UTILITY ────────────────────────────── */
   { x:5.40, z:9.45, yaw:150 },
