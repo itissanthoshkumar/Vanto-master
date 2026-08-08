@@ -319,6 +319,48 @@ function noise(ctx, s, alpha, n=900){
     ctx.fillRect(Math.random()*s, Math.random()*s, 1.5, 1.5);
   }
 }
+/* Height-field → tangent-space normal map. `draw` paints brightness-as-height
+   (grey 128 = flat); finite differences turn it into a normal map. This is
+   most of what separates "coloured box" from "surface": plaster, weave, wood
+   grain and stone read as material the moment light rakes across them. */
+function makeNormal(size, draw, strength=1.2, repX=1, repY=1){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'); g.fillStyle='#808080'; g.fillRect(0,0,size,size);
+  draw(g, size);
+  const d = g.getImageData(0,0,size,size).data;
+  const H = (x,y)=> d[(((y+size)%size)*size + ((x+size)%size))*4];
+  const o = document.createElement('canvas'); o.width = o.height = size;
+  const og = o.getContext('2d'), img = og.createImageData(size,size);
+  for(let y=0;y<size;y++) for(let x=0;x<size;x++){
+    const dx = (H(x+1,y)-H(x-1,y))/255*strength;
+    const dy = (H(x,y+1)-H(x,y-1))/255*strength;
+    const inv = 1/Math.sqrt(dx*dx+dy*dy+1), i=(y*size+x)*4;
+    img.data[i]=(-dx*inv*.5+.5)*255; img.data[i+1]=(-dy*inv*.5+.5)*255;
+    img.data[i+2]=inv*255; img.data[i+3]=255;
+  }
+  og.putImageData(img,0,0);
+  const t = new THREE.CanvasTexture(o);                 // linear — no SRGB for data maps
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repX,repY); t.anisotropy=4;
+  return t;
+}
+/* grayscale roughness map — uneven gloss is what makes big flat floors and
+   counters look like they exist in a room instead of a render */
+function makeRough(size, draw, repX=1, repY=1){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repX,repY); t.anisotropy=4;
+  return t;
+}
+function softBlobs(g, s, n, rMin, rMax, lo, hi){
+  for(let i=0;i<n;i++){
+    const x=Math.random()*s, y=Math.random()*s, r=rMin+Math.random()*(rMax-rMin);
+    const v=Math.round(lo+Math.random()*(hi-lo));
+    const rg=g.createRadialGradient(x,y,0,x,y,r);
+    rg.addColorStop(0,`rgba(${v},${v},${v},.55)`); rg.addColorStop(1,`rgba(${v},${v},${v},0)`);
+    g.fillStyle=rg; g.beginPath(); g.arc(x,y,r,0,7); g.fill();
+  }
+}
 const texTileIvory = makeTex(512,(g,s)=>{
   g.fillStyle='#eae3d3'; g.fillRect(0,0,s,s); noise(g,s,.025,1400);
   g.strokeStyle='#d3c9b4'; g.lineWidth=2;
@@ -502,6 +544,24 @@ function cyl(parent, mat, rT,rB,h, x,y,z, opts={}){
 function sph(parent, mat, r, x,y,z, sx=1,sy=1,sz=1){
   const m = new THREE.Mesh(new THREE.SphereGeometry(r,12,10), mat);
   m.position.set(x,y,z); m.scale.set(sx,sy,sz); m.castShadow=true; parent.add(m); return m;
+}
+
+/* soft radial contact shadow under furniture — the "grounding" a shadow map
+   can't give at this scale. Cheap, and the single biggest anti-float cue. */
+const texBlobAO = (()=>{
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(64,64,6, 64,64,62);
+  rg.addColorStop(0,'rgba(0,0,0,.40)'); rg.addColorStop(.62,'rgba(0,0,0,.15)');
+  rg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
+})();
+function contactShadow(x,z,w,d, op=.9, y=.006){
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w,d),
+    new THREE.MeshBasicMaterial({ map:texBlobAO, transparent:true, opacity:op, depthWrite:false }));
+  m.rotation.x = -Math.PI/2; m.position.set(x,y,z); m.renderOrder = 1;
+  world.add(m); return m;
 }
 
 /* wall run along X or Z with openings; auto colliders */
@@ -862,6 +922,67 @@ const M2 = {
   led   : new THREE.MeshStandardMaterial({ color:0x8fe3ff, emissive:0x39c6f0, emissiveIntensity:1.1 }),
   rubber: new THREE.MeshStandardMaterial({ color:0x2a2c2e, roughness:.9 }),
 };
+
+/* ================= REALISM PASS · micro-surface maps =================
+   Flat single-colour materials are what read as "cartoon". Every large
+   surface family gets a normal map (so raking light catches real relief)
+   and the glossy ones get a roughness map (so reflections are uneven,
+   like a lived-in room, not a render). All canvas-generated — still one
+   self-contained file. */
+(function realismMaps(){
+  // plaster: fine stipple + a few roller blotches
+  const plasterN = makeNormal(256,(g,s)=>{
+    for(let i=0;i<2600;i++){ const v=118+Math.random()*20|0;
+      g.fillStyle=`rgb(${v},${v},${v})`; g.fillRect(Math.random()*s,Math.random()*s,1.6,1.6); }
+    softBlobs(g,s,10,30,80,120,136);
+  }, .7, 3,3);
+  // woven cloth: warp/weft cross-lines
+  const weaveN = makeNormal(256,(g,s)=>{
+    for(let y=0;y<s;y+=3){ const v=120+((y/3)%2)*16;
+      g.fillStyle=`rgb(${v},${v},${v})`; g.fillRect(0,y,s,1.6); }
+    for(let x=0;x<s;x+=3){ const v=122+((x/3)%2)*12;
+      g.fillStyle=`rgba(${v},${v},${v},.55)`; g.fillRect(x,0,1.6,s); }
+  }, .85, 5,5);
+  // timber: long wavy grain streaks
+  const grainN = makeNormal(256,(g,s)=>{
+    for(let i=0;i<52;i++){ const y=Math.random()*s, v=112+Math.random()*32|0;
+      g.strokeStyle=`rgba(${v},${v},${v},.7)`; g.lineWidth=.8+Math.random()*1.8;
+      g.beginPath(); g.moveTo(0,y);
+      g.bezierCurveTo(s*.3,y+(Math.random()*10-5), s*.7,y+(Math.random()*10-5), s,y+(Math.random()*6-3));
+      g.stroke(); }
+  }, .6, 2,2);
+  // polished stone: barely-there undulation
+  const stoneN = makeNormal(256,(g,s)=>{ softBlobs(g,s,26,20,70,120,136); }, .35, 2,2);
+  // floor gloss variation: big soft sheen patches + traffic scuff
+  const floorR = makeRough(256,(g,s)=>{
+    g.fillStyle='#6e6e6e'; g.fillRect(0,0,s,s);
+    softBlobs(g,s,16,40,110,74,148);
+    for(let i=0;i<500;i++){ const v=96+Math.random()*70|0;
+      g.fillStyle=`rgba(${v},${v},${v},.3)`; g.fillRect(Math.random()*s,Math.random()*s,2,2); }
+  }, 3,3);
+  const stoneR = makeRough(256,(g,s)=>{
+    g.fillStyle='#5a5a5a'; g.fillRect(0,0,s,s); softBlobs(g,s,20,26,80,60,120);
+  }, 2,2);
+  const clothR = makeRough(256,(g,s)=>{
+    g.fillStyle='#ececec'; g.fillRect(0,0,s,s); softBlobs(g,s,12,40,100,214,244);
+  }, 3,3);
+
+  const put=(mats, n, ns, r)=>{ for(const m of mats){ if(!m) continue;
+    if(n){ m.normalMap=n; m.normalScale=new THREE.Vector2(ns,ns); }
+    if(r) m.roughnessMap=r;
+    m.needsUpdate=true; } };
+
+  put([M.wallInt, M.wallExt, M.ceil, M.cove, M.accentM, M.accentB1, M.accentB2, M.clayW], plasterN, .30);
+  put([M.fabric, M.fabric2, M.bedM, M.pillow, M.cushion, M.cushion2,
+       M.bedThrow, M.bedThrow2, M.bedThrow3, M.rug, M.linenSh], weaveN, .55, clothR);
+  put([M.walnut, M.oakF, M.kLower, M.kUpper, M.doorM, M.mainDoor, M.media, M.wood, M.frame], grainN, .35);
+  put([M.granite, M.stone2, M.stone3], stoneN, .18, stoneR);
+  put([M.tile, M.ttile, M.balc, M.cortile, M.utile], stoneN, .12, floorR);
+  put([M2.inox, M2.inoxD, M.steel], grainN, .12);          // brushed metal
+  // sharper floors up close
+  for(const m of [M.tile, M.wood, M.ttile]) if(m.map) m.map.anisotropy = 8;
+})();
+
 function applianceShell(g, w,h,d, mat){
   box(g, mat, w, h-.06, d, 0, h/2, 0, {cast:true});
   box(g, M2.inoxD, w+.006, .05, d, 0, h-.025, 0, {cast:false});
@@ -935,6 +1056,7 @@ function bed(x,z, w,l, ry, throwMat, king=false){
   const rot = Math.abs(Math.sin(ry)) > .5;                            // true footprint after rotation
   const ex = rot ? l : w, ez = rot ? w : l;
   addCollider(x-ex/2, x+ex/2, z-ez/2, z+ez/2);
+  contactShadow(x, z, ex+.3, ez+.3, .55);
   return g;
 }
 /* ---- BUILT-IN JOINERY ------------------------------------------------------
@@ -979,6 +1101,7 @@ function joineryRun(x, z, w, ry, o={}){
   box(g, M.walnut, w+.03, .045, D+.02, 0, H+.02, 0, {cast:false});                    // cornice
   const c=Math.abs(Math.cos(ry)), s=Math.abs(Math.sin(ry)), hw=w/2, hd=D/2;
   addCollider(x-c*hw-s*hd, x+c*hw+s*hd, z-s*hw-c*hd, z+s*hw+c*hd);
+  contactShadow(x, z, 2*(c*hw+s*hd)+.22, 2*(s*hw+c*hd)+.22, .5);
   return g;
 }
 /* floating bedside box — walnut, off the floor, warm reveal under. Front +z. */
@@ -2261,6 +2384,60 @@ const festG = new THREE.Group(); world.add(festG); festG.visible = false;
   diya(6.98, .40, .59); diya(.24, 10.32, .59);
 })();
 
+/* ================= REALISM PASS · baked-look ambient occlusion =================
+   Real rooms are darkest exactly where the shadow map is weakest: the seam
+   where a wall meets the floor. Every interior wall collider gets a thin
+   gradient strip along both faces, merged into one mesh. Plus contact blobs
+   under the free-standing furniture the helpers don't cover. */
+(function bakeEdgeAO(){
+  const c = document.createElement('canvas'); c.width = 64; c.height = 4;
+  const g = c.getContext('2d');
+  const lg = g.createLinearGradient(0,0,64,0);
+  lg.addColorStop(0,'rgba(0,0,0,.26)'); lg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = lg; g.fillRect(0,0,64,4);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+
+  const pos=[], uv=[], idx=[]; let vi=0;
+  const W = .10, y = .0045;
+  // quad with u=0 (dark) on the named edge
+  const quad = (x0,x1,z0,z1, dark)=>{
+    pos.push(x0,y,z0, x1,y,z0, x1,y,z1, x0,y,z1);
+    const U = { x0:[0,1,1,0], x1:[1,0,0,1], z0:[0,0,1,1], z1:[1,1,0,0] }[dark];
+    for(let k=0;k<4;k++) uv.push(U[k], k<2?0:1);
+    idx.push(vi,vi+1,vi+2, vi,vi+2,vi+3); vi+=4;
+  };
+  for(const cd of colliders){
+    if(cd.tag!=='wall') continue;
+    if(cd.minX<-1||cd.maxX>10.4||cd.minZ<-1||cd.maxZ>14.8) continue;   // interior only
+    const dx=cd.maxX-cd.minX, dz=cd.maxZ-cd.minZ;
+    if(Math.min(dx,dz) > .5) continue;                                 // wall slabs, not blocks
+    if(Math.max(dx,dz) < .3) continue;
+    if(dz>=dx){ quad(cd.minX-W, cd.minX, cd.minZ, cd.maxZ, 'x1');
+                quad(cd.maxX, cd.maxX+W, cd.minZ, cd.maxZ, 'x0'); }
+    else      { quad(cd.minX, cd.maxX, cd.minZ-W, cd.minZ, 'z1');
+                quad(cd.minX, cd.maxX, cd.maxZ, cd.maxZ+W, 'z0'); }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv,2));
+  geo.setIndex(idx);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+    map:tex, transparent:true, depthWrite:false, side:THREE.DoubleSide }));
+  mesh.renderOrder = 1; world.add(mesh);
+
+  // free-standing pieces the helpers don't ground
+  contactShadow(4.42, 4.80, 3.00, 1.30, .55);      // sectional, main run
+  contactShadow(5.60, 5.45, 1.10, 1.60, .45);      // chaise
+  contactShadow(3.00, 4.88, 1.15, 1.15, .5);       // accent chair
+  contactShadow(4.35, 5.70, 1.30, .75, .4);        // coffee table
+  contactShadow(6.66, 5.35, 1.00, 1.35, .35);      // jhula
+  contactShadow(4.08, 7.35, 2.30, 1.30, .5);       // kitchen peninsula
+  contactShadow(5.58, 6.98, 1.05, .95, .5);        // fridge
+  contactShadow(1.85, .55, 1.30, .85, .45);        // study desk
+  contactShadow(1.72, 9.05, .85, 1.75, .45);       // pooja plinth
+})();
+
 /* ================= EXTERIOR · TRIFECTA VANTO MASTERPLAN =================
    The flat is on the 14th floor of a G+24 tower, so the world below sits
    GROUND_Y metres down and the balconies look west over the 12.5-acre site:
@@ -3212,7 +3389,8 @@ function setTwo(on){
 }
 function reset(){
   stopTour(false); glide.on=false; hideCap(); $('#fade').style.opacity=0;
-  setEvening(false); setGhost(false); setNet(true); setTwo(false); setAmen(false); setRealistic(false); setFest(false);
+  setEvening(false); setGhost(false); setNet(true); setTwo(false); setAmen(false);
+  setRealistic(REAL_DEFAULT); setFest(false);   // reset returns to the load-time default look
   state.roofManual = null;
   state.labels = true; $('#labelsBtn').classList.add('on'); labelsEl.style.display='block';
   Object.assign(orbit,{...ORBIT0, dTheta:ORBIT0.theta, dPhi:ORBIT0.phi, dR:ORBIT0.r});
@@ -3275,14 +3453,17 @@ function setRealistic(on){
   scene.environment = on ? envTex : null;
   for(const [m,b] of matBase){
     if(on){
-      m.envMapIntensity = (b.mt > .4 ? 1.35 : .85);
-      m.roughness = Math.max(.05, b.r * .82);     // crisper highlights
-      m.metalness = b.mt > .4 ? b.mt : Math.min(.12, b.mt + .06);
+      /* metals and gloss get real reflections; matte surfaces get only a
+         whisper of env — .85 across the board washed the room flat white */
+      m.envMapIntensity = b.mt > .4 ? 1.2 : (b.r < .45 ? .7 : .38);
+      m.roughness = Math.max(.05, b.r * .9);
+      m.metalness = b.mt > .4 ? b.mt : Math.min(.1, b.mt + .04);
     } else {
       m.envMapIntensity = b.ei; m.roughness = b.r; m.metalness = b.mt;
     }
     m.needsUpdate = true;
   }
+  sun.intensity = on ? 2.1 : 1.65;               // keep light directional, not foggy
   // higher-resolution soft shadows
   if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
   sun.shadow.mapSize.set(on ? 4096 : 2048, on ? 4096 : 2048);
@@ -3291,9 +3472,11 @@ function setRealistic(on){
   renderer.shadowMap.needsUpdate = true;
   renderer.setPixelRatio(Math.min(devicePixelRatio, on ? 2.5 : 2));
   // env fills the room, so dial the fill lights back to keep contrast
-  hemi.intensity = state.evening ? (on ? .16 : .30) : (on ? .38 : 1.0);
-  amb.intensity  = state.evening ? (on ? .10 : .22) : (on ? .14 : .50);
-  renderer.toneMappingExposure = state.evening ? (on ? .98 : .95) : (on ? 1.00 : 1.12);
+  /* realistic day mix leans on the warm ambient, not the blue sky dome —
+     the cool hemi at .38 was greying the cream walls and pale timber */
+  hemi.intensity = state.evening ? (on ? .16 : .30) : (on ? .22 : 1.0);
+  amb.intensity  = state.evening ? (on ? .10 : .22) : (on ? .20 : .50);
+  renderer.toneMappingExposure = state.evening ? (on ? .98 : .95) : (on ? 1.04 : 1.12);
 }
 function setAmen(on){
   state.amen = on; $('#amenBtn').classList.toggle('on', on);
@@ -4082,6 +4265,11 @@ buildLabels();
 buildAmenities();
 setEvening(false);
 applyRoof();
+/* Realistic (IBL + soft shadows) is the default look on machines that can
+   afford it; phones keep the lighter renderer. The toggle still works, and
+   ?lowfx forces the light path everywhere. */
+const REAL_DEFAULT = innerWidth > 900 && !/[?&]lowfx/.test(location.search);
+if(REAL_DEFAULT) setRealistic(true);
 setMode('overview', true);
 animate();
 setTimeout(()=>{ const l=$('#loading'); l.style.opacity=0; setTimeout(()=>l.remove(),650); }, 700);
