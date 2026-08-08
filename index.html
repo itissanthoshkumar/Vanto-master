@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B-1428 &amp; 1429 · Trifecta Vanto — Interactive 3D Walkthrough</title>
+<title>Sashtii Nila - Yum · Trifecta Vanto — Interactive 3D Walkthrough</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { height:100%; overflow:hidden; background:#0d0f12; }
@@ -119,12 +119,64 @@
   .tbtn.gold:hover { background:#f0c26a; }
   #minimap { cursor:pointer; }
 
+  /* ---------- tablet ---------- */
+  @media (max-width:1024px){
+    #toolbar { max-width:calc(100vw - 24px); gap:6px; }
+    .tbtn { padding:8px 12px; font-size:12px; }
+    #mapWrap { transform:scale(.82); transform-origin:bottom right; }
+  }
+  /* ---------- phone ----------
+     The toolbar becomes a horizontally scrollable strip pinned above the player
+     bar, the floor map and the desktop hint go away, and every control is at
+     least 40 px tall so it is thumb-sized. Cards shrink and the safe-area insets
+     are respected so nothing hides under the iOS home indicator. */
   @media (max-width:760px){
-    #toolbar { max-width:calc(100vw - 32px); top:auto; bottom:86px; right:16px; }
-    #titleCard h2 { font-size:13px; }
-    #intro h1 { font-size:32px; }
+    /* toolbar lives at the TOP on phones — the bottom belongs to the player bar,
+       and stacking them collided */
+    #toolbar {
+      top:66px; left:10px; right:10px; bottom:auto;
+      max-width:none; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+      justify-content:flex-start; gap:8px; padding-bottom:4px;
+      -webkit-overflow-scrolling:touch; scrollbar-width:none;
+    }
+    #toolbar::-webkit-scrollbar { display:none; }
+    .tbtn { flex:0 0 auto; padding:11px 14px; font-size:12.5px; min-height:40px; }
+    #titleCard { left:10px; top:10px; padding:9px 13px; max-width:calc(100vw - 20px); }
+    #titleCard h2 { font-size:12.5px; letter-spacing:.10em; }
+    #titleCard p  { font-size:10.5px; }
+    #intro .card { padding:30px 22px 26px; margin:14px; }
+    #intro h1 { font-size:27px; }
+    #intro p  { font-size:13.5px; margin-bottom:20px; }
+    #intro .btns { flex-direction:column; }
+    #intro .btns .tbtn { width:100%; min-height:46px; font-size:14px; }
     #hint { display:none; }
     #mapWrap { display:none; }
+    #roomCard { display:none; }                       /* labels already name the room */
+    #tourCard { width:calc(100vw - 28px); padding:11px 14px;
+                bottom:calc(128px + env(safe-area-inset-bottom,0px)); }
+    #tourCard b { font-size:16px; } #tourCard span { font-size:11.5px; }
+    /* .vis re-applies translateX(-50%) at higher specificity, so both the
+       resting and visible transforms have to be overridden here */
+    #videoBar, #videoBar.vis {
+      left:10px; right:10px; bottom:calc(10px + env(safe-area-inset-bottom,0px));
+      width:auto; gap:7px; padding:9px 10px; flex-wrap:wrap; justify-content:center;
+    }
+    #videoBar     { transform:translateY(140%); }
+    #videoBar.vis { transform:translateY(0); }
+    #videoBar button { min-height:38px; min-width:38px; font-size:13px; }
+    #videoBar button.wide { font-size:11.5px; padding:0 10px; }
+    #vpTrack { flex:1 1 100%; order:9; margin:2px 0 0; }
+    #vpTime { font-size:11px; }
+    .label, .amen { font-size:10px; padding:3px 6px; }
+  }
+  /* short landscape phones: keep the player from eating the frame */
+  @media (max-height:460px) and (orientation:landscape){
+    #toolbar { bottom:auto; top:8px; right:8px; left:auto; max-width:64vw; }
+    #titleCard { padding:6px 10px; } #titleCard p { display:none; }
+    #roomCard { display:none; }
+    #videoBar, #videoBar.vis { bottom:6px; padding:6px 9px; }
+    #videoBar button { min-height:32px; min-width:32px; }
+    #tourCard { bottom:76px; }
   }
 </style>
 </head>
@@ -135,8 +187,8 @@
 <div id="amenities"></div>
 
 <div id="titleCard" class="glass">
-  <h2>B-1428 &amp; 1429 · TRIFECTA VANTO</h2>
-  <p>2 × 1BHK converted to 3BHK · 1425 sqft · Tower B</p>
+  <h2>SASHTII NILA - YUM</h2>
+  <p>B-1428 &amp; 1429 · Trifecta Vanto · 1425 sqft · Tower B</p>
 </div>
 
 <div id="toolbar">
@@ -185,12 +237,12 @@
 <div id="intro">
   <div class="card">
     <div class="kicker">INTERACTIVE APARTMENT MODEL</div>
-    <h1>Two flats, one home.</h1>
+    <h1>Sashtii Nila&nbsp;-&nbsp;Yum</h1>
     <p>B-1428 &amp; 1429 in Tower B of Trifecta Vanto — two 1BHKs opened up into a single 1425 sqft 3BHK.
-       The walkthrough starts playing on its own in a moment. Take over whenever you like —
-       walk it yourself, or lift into an overview and click any room on the floor map.</p>
+       Pick how you would like to see it: play the guided tour, walk in and explore it yourself,
+       or lift into an overview and click any room on the floor map.</p>
     <div class="btns">
-      <button class="btn gold" id="startTour">▶ Play now</button>
+      <button class="btn gold" id="startTour">▶ Play the tour</button>
       <button class="btn dark" id="startWalk">Walk in freely</button>
       <button class="btn dark" id="startOver">Open overview</button>
     </div>
@@ -704,8 +756,27 @@ doorFrame(world,'z',7.315, 3.62,4.66, .22);
 // main door stands fully open, flat against the east wall inside the flat,
 // so it never blocks the entry lane or the living-room view
 const mainLeaf = doorAt(world, 7.16, 3.62, 1.0, Math.PI/2 + 0.12, M.mainDoor);
-box(world, M.brass, .02,.1,.24, 7.36, 1.45, 4.86, {cast:false});   // plaque
-// F-029 label handled via HTML label
+box(world, M.brass, .02,.1,.24, 7.36, 1.45, 4.86, {cast:false});   // small brass plaque
+/* house nameplate on the corridor side of the entrance wall */
+{
+  const texName = makeTex(512, (c,s)=>{
+    c.fillStyle='#241f18'; c.fillRect(0,0,s,s);
+    c.strokeStyle='#d7ae6a'; c.lineWidth=7; c.strokeRect(26,26,s-52,s-52);
+    c.strokeStyle='rgba(215,174,106,.5)'; c.lineWidth=2; c.strokeRect(44,44,s-88,s-88);
+    c.fillStyle='#e8c384'; c.textAlign='center';
+    c.font='bold 92px Georgia, "Times New Roman", serif';
+    c.fillText('SASHTII', s/2, s*0.38);
+    c.fillText('NILA', s/2, s*0.60);
+    c.font='bold 54px Georgia, serif';
+    c.fillText('~ YUM ~', s/2, s*0.79);
+  });
+  // the flat's east wall runs 7.215–7.415, so the corridor face is 7.415 —
+  // the plate has to sit on that, not on the 7.315 centreline
+  box(world, M.brass, .03,.40,.52, 7.428, 1.56, 5.16, {cast:false});
+  const np = new THREE.Mesh(new THREE.PlaneGeometry(.44,.34),
+    new THREE.MeshStandardMaterial({ map:texName, roughness:.45, metalness:.15 }));
+  np.rotation.y = Math.PI/2; np.position.set(7.446, 1.56, 5.16); world.add(np);
+}
 
 /* thresholds */
 box(world, M.granite, .2,.02,1.04, 7.315, .01, 4.14, {cast:false});
@@ -1210,8 +1281,50 @@ colliderTag='pooja';
   // marble plinth + step, idol niche, diyas
   box(g, M.granite, D-.06, .42, L-.12, mx, .21, mz, {solid:true});
   box(g, M.granite, D-.06, .12, .30, mx, .48, mz-.55, {cast:false});
-  box(g, M.brass, .16,.34,.14, mx+.02, .76, mz+.05);                       // idol
-  cyl(g, M.brass, .10,.13,.05, mx+.02, .57, mz+.05, {seg:12});
+  /* ---- LORD MURUGAN — standing, vel upright in the right hand, peacock at
+     his left, prabhavali arch behind. Replaces the plain brass block. ---- */
+  cyl(g, M.brass, .10,.13,.05, mx+.02, .57, mz+.05, {seg:12});             // pedestal
+  (function murugan(){
+    const MU = {
+      peacock: new THREE.MeshStandardMaterial({ color:0x1c6b7a, roughness:.55, metalness:.3 }),
+      tail   : new THREE.MeshStandardMaterial({ color:0x2f8f6d, roughness:.5,  metalness:.35 }),
+      silk   : new THREE.MeshStandardMaterial({ color:0xc0392b, roughness:.85 }),
+    };
+    /* Built in local coordinates in its own group so it can be scaled to read
+       from the dining. The mandir opens EAST, so the idol faces +x and the vel
+       and peacock stand at his sides along z — not in front of and behind him. */
+    const mg = new THREE.Group();
+    mg.position.set(mx+.01, .595, mz+.04); mg.scale.setScalar(1.30); g.add(mg);
+    const B = (m,w,h,d,x,y,z,o={})=>box(mg,m,w,h,d,x,y,z,o);
+    const C = (m,a,b,h,x,y,z,o={})=>cyl(mg,m,a,b,h,x,y,z,o);
+    const S = (m,r,x,y,z,sx,sy,sz)=>sph(mg,m,r,x,y,z,sx,sy,sz);
+    for(let i=0;i<=18;i++){                                                // prabhavali arch
+      const a = Math.PI*i/18;
+      C(M.brass, .007,.007,.052, -.035, .155+Math.sin(a)*.20, Math.cos(a)*.155,
+        {rx:Math.PI/2 - a, seg:6, cast:false});
+    }
+    C(MU.silk,  .052,.076,.15, 0, .075, 0, {seg:16});                      // dhoti
+    C(M.brass,  .044,.050,.105, 0, .202, 0, {seg:16});                     // torso
+    B(M.brass, .052,.016,.088, .026, .215, 0, {cast:false});               // chest ornament
+    for(const s of [-1,1])                                                 // arms
+      C(M.brass, .012,.012,.125, .006, .208, s*.054, {rx:s*.30, seg:8, cast:false});
+    S(M.brass, .034, 0, .288, 0, 1,1.12,1);                                // head
+    C(M.brass, .018,.038,.072, 0, .350, 0, {seg:14});                      // kireedam
+    S(M.brass, .011, 0, .395, 0);
+    C(M.brass, .006,.006,.30, .010, .205, .088, {seg:8, cast:false});      // the vel, at his right
+    S(M.brass, .026, .010, .378, .088, .26,1.95,.46);
+    // peacock at his left
+    S(MU.peacock, .042, .010, .072, -.115, 1.3,.92,1);
+    C(MU.peacock, .010,.010,.072, .002, .132, -.138, {rx:-.32, seg:8, cast:false});
+    S(MU.peacock, .017, .002, .172, -.156);
+    for(let i=0;i<3;i++) C(M.brass, .0035,.0035,.020, .002, .190+i*.008, -.156, {seg:5, cast:false});
+    for(let i=0;i<7;i++){                                                  // fanned tail
+      const a = -0.92 + i*0.31;
+      const f = S(i%2?MU.tail:MU.peacock, .026,
+                  -.055, .095+Math.cos(a)*.125, -.115+Math.sin(a)*.095, .26,1.55,.5);
+      f.rotation.x = a;
+    }
+  })();
   for(const dz of [-.34,.34]){
     cyl(g, M.brass, .045,.055,.05, mx+.12, .47, mz+dz, {seg:10});
     cyl(g, M.coveGlow, .018,.018,.05, mx+.12, .52, mz+dz, {seg:8, cast:false});
@@ -1832,9 +1945,27 @@ colliderTag='decor';
      units; the unit's own backlit walnut shelves do that display job instead.) */
   {
     const zf = ZB0 - .015;
-    archNiche(6.45, .95, zf, .52, .78, .17, -1, M.clayW, true);
-    cyl(F, M.stone3, .07,.09,.20, 6.45, 1.05, zf-.09, {seg:16});
-    sph(F, M.greenD, .085, 6.45, 1.24, zf-.09, 1.1,1.5,1.1);
+    archNiche(6.95, .95, zf, .46, .74, .17, -1, M.clayW, true);
+    cyl(F, M.stone3, .07,.09,.20, 6.95, 1.05, zf-.09, {seg:16});
+    sph(F, M.greenD, .085, 6.95, 1.24, zf-.09, 1.1,1.5,1.1);
+  }
+
+  /* ---- 1b. family photograph, on wall B just east of the media unit ----
+     The image loads from family.jpg beside index.html. Until that file exists
+     the frame shows a warm linen mount, so nothing breaks if it is missing. */
+  {
+    const px = 6.28, py = 1.46, fw = .62, fh = .42;
+    const mount = new THREE.MeshStandardMaterial({ color:0xe6dac2, roughness:.75 });
+    new THREE.TextureLoader().load('family.jpg',
+      t => { t.colorSpace = THREE.SRGBColorSpace; mount.map = t;
+             mount.color.set(0xffffff); mount.needsUpdate = true; },
+      undefined, () => {});                                  // missing file: keep the mount
+    box(F, M.walnut, fw+.075, fh+.075, .032, px, py, ZB0-.016, {cast:false});
+    box(F, M.brass,  fw+.045, fh+.045, .006, px, py, ZB0-.034, {cast:false});
+    const ph = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), mount);
+    ph.rotation.y = Math.PI; ph.position.set(px, py, ZB0-.039); F.add(ph);
+    box(F, M.brass, .30,.012,.05, px, py+fh/2+.10, ZB0-.03, {cast:false});   // picture light
+    box(F, M.coveGlow, .24,.012,.02, px, py+fh/2+.086, ZB0-.055, {cast:false, recv:false});
   }
 
   /* ---- 2. fluted, arch-topped headboards ---- */
@@ -2002,19 +2133,22 @@ const festG = new THREE.Group(); world.add(festG); festG.visible = false;
          x0+(x1-x0)*t, y-dip, z0+(z1-z0)*t, 1,.86,1);
     }
   }
-  /* toran over a doorway: cord, hanging mango leaves, marigold drops */
+  /* toran over a doorway — marigold only. The mango-leaf version read as a
+     heavy green fringe over every opening, so the leaves are gone and this is
+     now a double marigold rope with drops. */
   function toran(axis, fixed, a, b, y){
     const alongX = axis==='x';
     const P = t => alongX ? [a+(b-a)*t, fixed] : [fixed, a+(b-a)*t];
-    const thin = alongX ? [.44,1.3,.20] : [.20,1.3,.44];
     if(alongX) fb(FM.cord, b-a, .012,.012, (a+b)/2, y, fixed);
     else       fb(FM.cord, .012,.012, b-a, fixed, y, (a+b)/2);
-    const N = Math.max(9, Math.round((b-a)/.068));
+    const N = Math.max(10, Math.round((b-a)/.055));
     for(let i=0;i<=N;i++){
-      const t=i/N, [px,pz]=P(t), dip = Math.sin(Math.PI*t)*.045;
-      const ll = .068 + (i%3)*.014;
-      fs(i%2?FM.leaf:FM.leafL, ll, px, y-dip-ll*.95, pz, thin[0],thin[1],thin[2]);
-      if(i%2===0) fs(FM.marigold, .026, px, y-dip-ll*2.15, pz, 1,.85,1);
+      const t=i/N, [px,pz]=P(t), dip = Math.sin(Math.PI*t)*.05;
+      fs([FM.marigold,FM.genda,FM.marigoldD][i%3], .030+(i%2)*.006, px, y-dip-.032, pz, 1,.88,1);
+      if(i%3===0){                                     // short drops between the blooms
+        fs(FM.genda,     .024, px, y-dip-.105, pz, 1,.88,1);
+        fs(FM.marigoldD, .020, px, y-dip-.162, pz, 1,.88,1);
+      }
     }
   }
   /* rangoli: concentric petal rings on the floor */
@@ -3952,15 +4086,27 @@ setMode('overview', true);
 animate();
 setTimeout(()=>{ const l=$('#loading'); l.style.opacity=0; setTimeout(()=>l.remove(),650); }, 700);
 
-/* the walkthrough plays by itself — no click needed. Any deliberate input
-   (click, WASD, or "Explore ✕") hands control straight back. */
-const AUTOPLAY = !/[?&]noauto/.test(location.search);
-if(AUTOPLAY) setTimeout(()=>{ if(state.intro && !tour.on) startTour(0); }, 1500);
+/* The intro card is the default landing: pick Tour, Walk or Overview and the
+   app does that one thing. It used to autoplay the tour after 1.5 s, which took
+   the choice away. Add ?autoplay to the URL to get the old behaviour back —
+   useful when embedding or recording. */
+if(/[?&]autoplay/.test(location.search))
+  setTimeout(()=>{ if(state.intro && !tour.on) startTour(0); }, 1500);
 
-addEventListener('resize', ()=>{
-  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+/* Three's FOV is VERTICAL. On a portrait phone (aspect ≈ 0.46) a fixed 62°
+   vertical leaves only ~31° horizontal, so rooms render as a claustrophobic
+   slit. Widen the vertical FOV as the frame narrows to keep the horizontal
+   field usable, and leave landscape/desktop exactly as it was. */
+function fitCamera(){
+  const a = innerWidth / innerHeight;
+  // 76 is the ceiling — beyond that you just see more ceiling and floor
+  camera.fov = a >= 1.1 ? 62 : Math.min(76, 62 * Math.min(2.0, 1.1 / a));
+  camera.aspect = a; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
-});
+}
+fitCamera();
+addEventListener('resize', fitCamera);
+addEventListener('orientationchange', ()=> setTimeout(fitCamera, 120));
 </script>
 </body>
 </html>
