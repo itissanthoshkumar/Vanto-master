@@ -1159,10 +1159,10 @@ colliderTag='living';
   const SFX0=4.30, SFX1=5.20;            // sofa: back (west) and front (east) faces
   const SFZ0=4.42, SFZ1=6.05;            // sofa: north and south ends
   const TVX=W_IN-.075, TVZ=5.57;         // TV on the east wall, proud of the battens
-  const MU0=3.02, MU1=5.78;              // wall-B unit, now a display wall
+  // (wall B carries nothing now — the whole unit went to the east wall)
 
-  const rug = new THREE.Mesh(new THREE.BoxGeometry(2.05,.02,1.65), M.rug);
-  rug.position.set(5.98,.012,5.32); rug.receiveShadow=true; F.add(rug);
+  const rug = new THREE.Mesh(new THREE.BoxGeometry(1.85,.02,1.60), M.rug);
+  rug.position.set(5.85,.012,5.32); rug.receiveShadow=true; F.add(rug);   // stops short of the unit
   // solid oak oval coffee table, 0.58 × 1.10, long axis north-south to match the
   // new seating line
   { const b = cyl(F, M.oakF, .30,.38,.30, 5.95,.15,5.35, {seg:28}); b.scale.x=.50;
@@ -1200,62 +1200,62 @@ colliderTag='living';
      Set and floating credenza on the reeded teak. The wall's solid run is
      z 4.66–6.515 (the main door takes 3.62–4.66), so a 55" centred on 5.57 has
      0.30 m of timber either side. */
-  {
-    const xW = W_IN;
-    box(F, M.black,  .042,.72, 1.24, TVX, 1.28, TVZ);
-    box(F, M.screen, .010,.655,1.16, TVX-.026, 1.28, TVZ);
-    box(F, M.oakF,  .30,.36,1.56, xW-.15, .50, TVZ, {solid:true});          // floating credenza
-    box(F, M.brass, .32,.02, 1.60, xW-.15, .685, TVZ, {cast:false});
-    for(let i=0;i<3;i++) box(F, M.brass, .02,.014,.12, xW-.303, .50, TVZ+(i-1)*.46, {cast:false});
-    box(F, M.brass, .02,.015,1.50, xW-.24, .318, TVZ, {cast:false});        // shadow-gap under
-  }
+  /* ---- FULL-HEIGHT MEDIA UNIT, now on the EAST wall -------------------------
+     The whole unit came across from wall B, not just the set: white lacquer
+     carcass, base run on a recessed plinth with a warm reveal, brass pulls,
+     walnut top, and a lit walnut open bay.
 
-  // forest-green accent chair in the west pocket, turned at the TV
+     It had to be RE-PROPORTIONED to get here. On wall B it ran 2.76 m with a
+     tall bay each side of a centre TV bay. The east wall's solid run is only
+     z 4.66–6.515 — the front door takes 3.62–4.66 — so 2.76 does not fit. It is
+     1.76 m now (z 4.70–6.46) and asymmetric: the 55" bay to the north, a single
+     tall lit bay to the south. The reeded teak already on this wall shows
+     through the open TV bay as its backing. */
   {
-    const cx=3.40, cz=5.55;
-    const ch = new THREE.Group(); ch.position.set(cx,0,cz); ch.rotation.y=Math.PI/2; F.add(ch);
-    box(ch, M.accentB1, .68,.34,.68, 0,.21,0, {cast:true});
-    box(ch, M.accentB1, .68,.42,.16, 0,.56,-.26, {cast:true});
-    cyl(ch, M.accentB1, .08,.08,.68, 0,.77,-.26, {rz:Math.PI/2, seg:16, cast:false});
-    for(const s of [-1,1]) cyl(ch, M.accentB1, .08,.08,.66, s*.30,.47,0, {rx:Math.PI/2, seg:16});
-    box(ch, M.cushion2, .52,.09,.52, 0,.42,.03, {cast:false});
-    for(const sx of [-1,1]) for(const sz of [-1,1]) cyl(ch, M.brass, .017,.017,.16, sx*.27,.08,sz*.27,{seg:8});
-    addCollider(cx-.48, cx+.48, cz-.48, cz+.48);
-    contactShadow(cx, cz, 1.20, 1.20, .45);
-  }
-
-  /* ---- FULL-HEIGHT MEDIA UNIT ----------------------------------------------
-     White lacquer carcass, walnut open shelves on warm LED reveals, a continuous
-     base run on a recessed plinth, and the 55" set on a fluted walnut centre bay.
-     0.34 deep, front face at z 6.175. Starts at x 3.02 — clear of the kitchen
-     arch, which ends at 2.90 — and stops at 5.78, short of the entry. */
-  {
-    const zW=ZB0, D=.34, zC=zW-D/2, zF=zW-D, BH=.68, UH=2.42;
-    const bays = [[MU0, 3.68], [5.12, MU1]];
-    box(F, M.frame, MU1-MU0-.04, .10, D-.09, (MU0+MU1)/2, .05, zC+.045, {cast:false});   // recessed plinth
-    box(F, M.coveGlow, MU1-MU0-.34, .018,.02, (MU0+MU1)/2, .105, zF+.06, {cast:false, recv:false});
-    box(F, M.white, MU1-MU0, BH-.10, D, (MU0+MU1)/2, (.10+BH)/2, zC, {cast:true});       // base run
-    box(F, M.walnut, MU1-MU0+.03, .045, D+.02, (MU0+MU1)/2, BH+.022, zC, {cast:false});
+    const xW=W_IN, D=.34, xC=xW-D/2, xF=xW-D, BH=.68, UH=2.42;
+    const U0=4.70, U1=6.46, BAY0=6.04, BAY1=6.46;      // unit span, tall-bay span
+    box(F, M.frame, D-.09, .10, U1-U0-.04, xC+.045, .05, (U0+U1)/2, {cast:false});   // recessed plinth
+    box(F, M.coveGlow, .02,.018, U1-U0-.34, xF+.06, .105, (U0+U1)/2, {cast:false, recv:false});
+    box(F, M.white, D, BH-.10, U1-U0, xC, (.10+BH)/2, (U0+U1)/2, {cast:true});       // base run
+    box(F, M.walnut, D+.02, .045, U1-U0+.03, xC, BH+.022, (U0+U1)/2, {cast:false});
     for(let i=0;i<4;i++){
-      box(F, M.frame, .008, BH-.16, .006, MU0+(MU1-MU0)*i/4, (.10+BH)/2, zF+.003, {cast:false});
-      box(F, M.brass, .22,.016,.02, MU0+(MU1-MU0)*(i+.5)/4, .44, zF+.013, {cast:false});
+      box(F, M.frame, .006, BH-.16, .008, xF+.003, (.10+BH)/2, U0+(U1-U0)*i/4, {cast:false});
+      box(F, M.brass, .02,.016,.22, xF+.013, .44, U0+(U1-U0)*(i+.5)/4, {cast:false});
     }
-    for(const [x0,x1] of bays){                                                          // tall shelf units
-      const w=x1-x0, cx=(x0+x1)/2;
-      for(const s of [x0+.025, x1-.025]) box(F, M.white, .05, UH-BH, D, s, (BH+UH)/2, zC, {cast:true});
-      box(F, M.white, w, .05, D, cx, UH-.025, zC, {cast:true});
-      box(F, M.walnut, w-.10, UH-BH-.05, .03, cx, (BH+UH-.05)/2, zW-.02, {cast:false});
+    { const w=BAY1-BAY0, cz=(BAY0+BAY1)/2;                                           // tall lit bay
+      for(const s of [BAY0+.025, BAY1-.025]) box(F, M.white, D, UH-BH, .05, xC, (BH+UH)/2, s, {cast:true});
+      box(F, M.white, D, .05, w, xC, UH-.025, cz, {cast:true});
+      box(F, M.walnut, .03, UH-BH-.05, w-.10, xW-.02, (BH+UH-.05)/2, cz, {cast:false});
       for(let i=0;i<4;i++){
         const sy = BH+.34+i*.40;
-        box(F, M.walnut, w-.10, .04, D-.05, cx, sy, zC-.012, {cast:true});
-        box(F, M.coveGlow, w-.26, .016,.02, cx, sy-.038, zF+.055, {cast:false, recv:false});
+        box(F, M.walnut, D-.05, .04, w-.10, xC-.012, sy, cz, {cast:true});
+        box(F, M.coveGlow, .02,.016, w-.26, xF+.055, sy-.038, cz, {cast:false, recv:false});
       }
     }
-    for(let i=0;i<14;i++)                                                                // fluted centre bay
-      box(F, M.walnut, .055, UH-BH-.06, .022, 3.74+i*.10, (BH+UH)/2, zW-.014, {cast:false});
-    // (the 55" that used to hang here has moved to the east wall — the centre
-    //  bay is now the family photograph's, see the KOLAM / photo block)
-    addCollider(MU0, MU1, zF, zW);
+    box(F, M.black,  .042,.72, 1.24, TVX, 1.34, TVZ);                                // the 55"
+    box(F, M.screen, .010,.655,1.16, TVX-.026, 1.34, TVZ);
+    addCollider(xF, xW, U0, U1);
+  }
+
+  /* ---- RECLINER, turned at the TV ------------------------------------------
+     Replaces the accent chair that stood here. Deep-backed lounge chair with a
+     footrest out front, so it needs more room than the chair did: pushed west to
+     3.20 to keep 0.20 m off the sofa's back. */
+  {
+    const cx=3.20, cz=5.40;
+    const ch = new THREE.Group(); ch.position.set(cx,0,cz); ch.rotation.y=Math.PI/2; F.add(ch);
+    box(ch, M.accentB1, .86,.34,.80, 0,.22,.02, {cast:true});                        // seat block
+    box(ch, M.accentB1, .86,.62,.18, 0,.62,-.34, {ry:0, cast:true});                 // tall reclined back
+    cyl(ch, M.accentB1, .09,.09,.86, 0,.92,-.35, {rz:Math.PI/2, seg:16, cast:false});
+    for(const s of [-1,1]) cyl(ch, M.accentB1, .09,.09,.78, s*.38,.50,.02, {rx:Math.PI/2, seg:16});
+    box(ch, M.cushion2, .66,.10,.62, 0,.43,.05, {cast:false});                       // seat pad
+    box(ch, M.cushion2, .60,.30,.10, 0,.72,-.28, {cast:false});                      // lumbar
+    box(ch, M.accentB1, .70,.12,.42, 0,.28,.56, {cast:true});                        // footrest, out
+    box(ch, M.cushion2, .60,.07,.34, 0,.36,.56, {cast:false});
+    for(const sx of [-1,1]) for(const sz of [-.32,.30])
+      cyl(ch, M.brass, .018,.018,.18, sx*.34,.09,sz,{seg:8});
+    addCollider(cx-.46, cx+.90, cz-.46, cz+.46);          // footrest projects east
+    contactShadow(cx+.20, cz, 1.60, 1.10, .45);
   }
   /* The shoe console used to stand at (7.02, 3.30) — z 2.86–3.74, which straddled
      wall A (3.20–3.315) with half of it inside bedroom 2, and left only 0.58 m
@@ -2101,20 +2101,20 @@ colliderTag='decor';
      The image loads from family.jpg beside index.html. Until that file exists
      the frame shows a warm linen mount, so nothing breaks if it is missing. */
   {
-    /* Now in the unit's CENTRE BAY, on the fluted walnut the TV used to cover.
-       The flutes sit at z 6.490–6.512, so the frame stands in front of them. */
-    const px = 4.40, py = 1.34, fw = .86, fh = .58;
+    /* Wall B is bare plaster now that the whole media unit went east, so the
+       photograph hangs on it as the room's one piece of art. */
+    const px = 4.60, py = 1.52, fw = .86, fh = .58;
     const mount = new THREE.MeshStandardMaterial({ color:0xe6dac2, roughness:.75 });
     new THREE.TextureLoader().load('family.jpg',
       t => { t.colorSpace = THREE.SRGBColorSpace; mount.map = t;
              mount.color.set(0xffffff); mount.needsUpdate = true; },
       undefined, () => {});                                  // missing file: keep the mount
-    box(F, M.walnut, fw+.085, fh+.085, .034, px, py, ZB0-.060, {cast:false});
-    box(F, M.brass,  fw+.050, fh+.050, .006, px, py, ZB0-.079, {cast:false});
+    box(F, M.walnut, fw+.085, fh+.085, .034, px, py, ZB0-.018, {cast:false});
+    box(F, M.brass,  fw+.050, fh+.050, .006, px, py, ZB0-.037, {cast:false});
     const ph = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), mount);
-    ph.rotation.y = Math.PI; ph.position.set(px, py, ZB0-.084); F.add(ph);
-    box(F, M.brass, .34,.012,.05, px, py+fh/2+.12, ZB0-.075, {cast:false});   // picture light
-    box(F, M.coveGlow, .28,.012,.02, px, py+fh/2+.106, ZB0-.10, {cast:false, recv:false});
+    ph.rotation.y = Math.PI; ph.position.set(px, py, ZB0-.042); F.add(ph);
+    box(F, M.brass, .34,.012,.05, px, py+fh/2+.12, ZB0-.033, {cast:false});   // picture light
+    box(F, M.coveGlow, .28,.012,.02, px, py+fh/2+.106, ZB0-.058, {cast:false, recv:false});
   }
 
   /* ---- 2. fluted, arch-topped headboards ---- */
@@ -2139,7 +2139,7 @@ colliderTag='decor';
   /* ---- 3. sculptural floor lamp, north of the accent chair ----
      (the chair took 3.40, 5.55 in the re-plan, so the lamp steps north) */
   {
-    const bx = 3.40, bz = 4.72;
+    const bx = 3.55, bz = 4.55;
     cyl(F, M.stone2, .18,.21,.06, bx, .03, bz, {seg:26});          // travertine disc base
     cyl(F, M.brass,  .022,.022, 1.34, bx, .70, bz, {seg:14});      // slim stem
     cyl(F, M.brass,  .05,.05,.05, bx, 1.36, bz, {seg:14, cast:false});
@@ -3734,8 +3734,8 @@ const TOUR = [
   { x:7.30, z:4.14, yaw:90 },
   /* 2 TV UNIT / HALL ───────────────────────────────────── */
   { x:2.60, z:4.70, yaw:250, cap:['The hall','19\'0" × 10\'6" — seating turned to work across the long axis'], dwell:3.0 },
-  { x:5.45, z:4.75, yaw:244, cap:['TV wall','55" on reeded teak, floating credenza — a 2.4 m throw'], dwell:3.2 },
-  { x:4.05, z:4.05, yaw:172, cap:['The display wall','White lacquer, backlit walnut bays, the family photograph'], dwell:3.0 },
+  { x:5.45, z:4.75, yaw:244, cap:['The media unit','Moved wall to wall — white lacquer, lit walnut bay, reeded teak'], dwell:3.2 },
+  { x:4.60, z:3.88, yaw:180, cap:['The family wall','Wall B stripped back to plaster, one photograph on it'], dwell:3.0 },
   /* 3 BEDROOM 2 (in → look → out) ──────────────────────── */
   { x:4.20, z:3.85, yaw:20 },
   { x:4.75, z:3.80, yaw:0 },
