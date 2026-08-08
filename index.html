@@ -773,11 +773,10 @@ wallRun(wallsG, M.wallExt, 'x', (9.79+ZC0)/2+.02, 0, 1.415, .14, CEIL);       //
 // wall B — the old inter-flat wall. There is ONE way through to the kitchen:
 // the west opening (x 1.415–2.90), in front of the pooja. Everything east of
 // that is solid — media wall first, then plain wall behind the counter run.
-// only the TV bay (3.68–5.12) shows dark timber now — the rest of wall B is
-// behind the white joinery, and a stray strip of M.media beside it read as a slot
-wallRun(wallsG, M.wallInt, 'x', (ZB0+ZB1)/2, 2.90, 3.68, INT, CEIL, [], {});
-wallRun(wallsG, M.media,   'x', (ZB0+ZB1)/2, 3.68, 5.12, INT, CEIL, [], {});
-wallRun(wallsG, M.wallInt, 'x', (ZB0+ZB1)/2, 5.12, W_IN, INT, CEIL);
+// Wall B is plain plaster end to end. The dark M.media stripe at 3.68–5.12 was
+// the TV's backing; with the whole media unit gone to the east wall it was just
+// a brown band stranded on a bare wall.
+wallRun(wallsG, M.wallInt, 'x', (ZB0+ZB1)/2, 2.90, W_IN, INT, CEIL);
 
 // wall C (kitchen | bottom band) with 3 doors
 // Wall C is full height only as far as the a.toilet; from there east the kitchen
@@ -2004,18 +2003,20 @@ colliderTag='decor';
     }
   };
 
-  // living — coffee table + media unit styling
-  potPlant(6.98, 6.28, .88, true);                       // fiddle-leaf beside the media unit
-  box(F, MS.brassW, .32,.012,.20, 4.35,.395, 5.70, {cast:false});   // tray on the coffee table
-  vase(4.02, .407, 5.70, .12, MS.ceramic); stems(4.02,.52,5.70,5);  // off the TV sight line
-  books(4.55, .395, 5.72, 3, -.3);
-  // media unit: base top at 0.745, open shelves at 1.02 / 1.42 / 1.82 / 2.22
-  vase(3.26, .745, ZB0-.17, .15, MS.ceramicD);
-  books(5.36, .745, ZB0-.17, 4, .08);
-  books(3.16, 1.065, ZB0-.19, 4, .05);
-  vase(5.45, 1.465, ZB0-.19, .17, MS.ceramic);
-  vase(3.42, 1.865, ZB0-.19, .13, MS.ceramicD);
-  books(5.22, 2.265, ZB0-.19, 3, -.06);
+  /* LIVING. Every one of these used to sit on the media unit while it stood on
+     wall B. When the unit moved to the east wall they stayed behind and hung in
+     mid-air against blank plaster — six floating books and vases. They are all
+     re-hung on the surfaces that actually exist now, and thinned out: the room
+     was reading as clutter. */
+  potPlant(3.15, 6.25, .82, true);                     // fiddle-leaf, wall-B corner
+  // coffee table is at (5.95, 5.35) now, top at y 0.378
+  box(F, MS.brassW, .30,.012,.20, 5.95,.395, 5.62, {cast:false});
+  vase(5.95, .407, 5.08, .12, MS.ceramic); stems(5.95,.52,5.08,5);
+  // east media unit: base top y 0.745 at x 7.03, tall bay shelves at z 6.25
+  vase(7.03, .745, 5.02, .15, MS.ceramicD);
+  books(7.03, .745, 5.86, 3, Math.PI/2);
+  books(7.03, 1.065, 6.25, 3, Math.PI/2);
+  vase(7.03, 1.465, 6.25, .15, MS.ceramic);
   // island centrepiece — top is now at y 0.938, z 6.63–7.98
   vase(3.86, .938, 6.92, .16, MS.ceramic); stems(3.86,1.088,6.92,6);
   // kitchen counter accents
@@ -2136,10 +2137,12 @@ colliderTag='decor';
   flutedHeadboard(0.20, 11.45, 1.55, Math.PI/2, 1.15);   // master
   flutedHeadboard(7.14, 1.42, 1.50, -Math.PI/2, 1.05);   // bedroom 2
 
-  /* ---- 3. sculptural floor lamp, north of the accent chair ----
-     (the chair took 3.40, 5.55 in the re-plan, so the lamp steps north) */
+  /* ---- 3. standing lamp beside the TV ----
+     Moved here from the west side rather than adding a second one — the hall was
+     already reading as cluttered. Sits in the pocket south of the media unit,
+     clear of the coffee table and out of the front-door lane. */
   {
-    const bx = 3.55, bz = 4.55;
+    const bx = 6.60, bz = 6.25;
     cyl(F, M.stone2, .18,.21,.06, bx, .03, bz, {seg:26});          // travertine disc base
     cyl(F, M.brass,  .022,.022, 1.34, bx, .70, bz, {seg:14});      // slim stem
     cyl(F, M.brass,  .05,.05,.05, bx, 1.36, bz, {seg:14, cast:false});
