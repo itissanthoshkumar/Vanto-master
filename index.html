@@ -341,19 +341,26 @@ const app = $('#app');
    context" on the FIRST attempt — a crashed GPU process, battery saver, or too
    many WebGL tabs. Don't die on the first refusal: retry with progressively
    humbler settings before surrendering to the watchdog. */
+/* GLD = GPU downgrade level, bumped by every context LOSS (see the
+   webglcontextlost handler): a phone that boots, then has its context yanked
+   mid-run, reloads and renders lighter each time instead of looping. Level 1
+   drops antialias + caps pixels at 1.5× + 1024 shadows; level 2 also forfeits
+   the realistic pass. sessionStorage, so a fresh visit starts clean. */
+const GLD = +(sessionStorage.getItem('vantoGLD')||0);
 const renderer = (()=>{
   const attempts = [
     { antialias:true },
     { antialias:false },
     { antialias:false, powerPreference:'default', failIfMajorPerformanceCaveat:false },
   ];
+  if(GLD > 0) attempts.shift();          // a downgraded boot never asks for AA
   let lastErr;
   for(const o of attempts){
     try { return new THREE.WebGLRenderer(o); } catch(e){ lastErr = e; }
   }
   throw lastErr;
 })();
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, GLD ? 1.5 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -364,18 +371,24 @@ app.appendChild(renderer.domElement);
 
 /* Phones reclaim the GL context under memory pressure; without these handlers
    that is a permanent black canvas with no message. preventDefault on loss is
-   what makes the browser willing to hand the context back; on restore, three
-   recompiles its own GL state but our render targets (PMREM env, shadow maps)
-   are gone — a reload is the honest fix and takes a second. */
+   what makes the browser willing to hand the context back. Chrome does NOT
+   always fire contextrestored (seen in the field: the "restoring…" card sat
+   forever), so this never waits on it alone: the loss bumps GLD so the next
+   boot renders lighter, then auto-reloads once after 4 s — twice at most,
+   after that it's the button only. */
 renderer.domElement.addEventListener('webglcontextlost', e=>{
   e.preventDefault();
+  sessionStorage.setItem('vantoGLD', String(GLD+1));
   let n = document.getElementById('glLost');
   if(!n){
     n = document.createElement('div'); n.id='glLost'; n.className='glass';
     n.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;'+
       'padding:18px 22px;font-size:13.5px;color:#f5f1e8;text-align:center;max-width:280px;line-height:1.5';
-    n.textContent='Graphics paused by the phone — restoring…';
+    n.innerHTML='Graphics gave out on this phone — reloading with lighter settings…<br><br>'+
+      '<button onclick="location.reload()" style="border:none;border-radius:999px;padding:10px 22px;'+
+      'font-size:13.5px;font-weight:600;background:#e5b356;color:#211a0d;cursor:pointer">Reload now</button>';
     document.body.appendChild(n);
+    if(GLD < 2) setTimeout(()=> location.reload(), 4000);
   }
 });
 renderer.domElement.addEventListener('webglcontextrestored', ()=> location.reload());
@@ -3621,12 +3634,14 @@ function setRealistic(on){
      gets a 2048 map and a 2× pixel cap, a desktop 4096 and 2.5×. */
   const small = innerWidth <= 900 || devicePixelRatio > 2.5;
   if(sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
-  const sm = on ? (small ? 2048 : 4096) : 2048;
+  /* GLD > 0 means this phone has already lost a context — halve the shadow
+     budget and pixel cap rather than lose it again */
+  const sm = GLD ? 1024 : (on ? (small ? 2048 : 4096) : 2048);
   sun.shadow.mapSize.set(sm, sm);
   sun.shadow.radius = on ? (small ? 1.6 : 2.4) : 1;
   renderer.shadowMap.type = on ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   renderer.shadowMap.needsUpdate = true;
-  renderer.setPixelRatio(Math.min(devicePixelRatio, on ? (small ? 2 : 2.5) : 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, GLD ? 1.5 : (on ? (small ? 2 : 2.5) : 2)));
   // env fills the room, so dial the fill lights back to keep contrast
   /* realistic day mix leans on the warm ambient, not the blue sky dome —
      the cool hemi at .38 was greying the cream walls and pale timber */
@@ -4533,7 +4548,8 @@ applyRoof();
 /* Realistic (IBL + soft shadows) is now the only look — its toggle is gone from
    the toolbar. Shadow-map size and pixel ratio scale to the device inside
    setRealistic. ?lowfx still drops to the cheap path if a machine struggles. */
-const REAL_DEFAULT = !/[?&]lowfx/.test(location.search);
+/* two context losses = the realistic pass itself is too much for this GPU */
+const REAL_DEFAULT = !/[?&]lowfx/.test(location.search) && GLD < 2;
 setRealistic(REAL_DEFAULT);
 setMode('overview', true);
 animate();
