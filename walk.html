@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Sashtii Nila (yam) · 2D walk</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; overflow:hidden; background:#12100d; overscroll-behavior:none;
+              font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              color:#f5f1e8; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+  #view { position:fixed; inset:0; width:100%; height:100%; touch-action:none; }
+  #hud { position:fixed; top:0; left:0; right:0; z-index:5; pointer-events:none;
+         padding:calc(10px + env(safe-area-inset-top,0px)) 14px 26px;
+         background:linear-gradient(rgba(10,9,7,.72), rgba(10,9,7,0)); }
+  #hud h1 { font-size:13px; letter-spacing:.14em; color:#f3ead6; }
+  #hud p { font-size:11px; color:#b6ac99; margin-top:2px; }
+  #room { position:fixed; left:50%; transform:translateX(-50%); z-index:5; pointer-events:none;
+          bottom:calc(18px + env(safe-area-inset-bottom,0px));
+          background:rgba(22,20,17,.78); border:1px solid rgba(255,255,255,.08);
+          border-radius:999px; padding:8px 18px; font-size:13px; color:#f3ead6; }
+  #links { position:fixed; right:12px; z-index:5; font-size:11px;
+           top:calc(12px + env(safe-area-inset-top,0px)); text-align:right; }
+  #links a { color:#d9a441; text-decoration:none; display:block; margin-bottom:6px;
+             background:rgba(22,20,17,.7); padding:6px 12px; border-radius:999px; }
+  #map { position:fixed; left:12px; top:calc(64px + env(safe-area-inset-top,0px));
+         z-index:5; opacity:.85; pointer-events:none; border-radius:8px; }
+  #stick { position:fixed; width:120px; height:120px; margin:-60px 0 0 -60px; border-radius:50%;
+           border:2px solid rgba(255,255,255,.30); background:rgba(18,16,12,.22);
+           z-index:6; pointer-events:none; display:block;
+           box-shadow:0 6px 24px rgba(0,0,0,.30); }
+  #stick.idle { opacity:.42; }
+  #stick i { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px;
+             border-radius:50%; background:rgba(255,255,255,.78);
+             box-shadow:0 2px 10px rgba(0,0,0,.32); }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<canvas id="map" width="104" height="136"></canvas>
+<div id="hud">
+  <h1>SASHTII NILA (YAM) — 2D WALK</h1>
+  <p>B-1428 &amp; 1429 · Trifecta Vanto · left thumb walks · right thumb looks</p>
+</div>
+<div id="links"><a href="index.html">3D tour</a><a href="fallback.html">Photo tour</a></div>
+<div id="stick" class="idle"><i></i></div>
+<div id="room">Entry corridor</div>
+<script>
+/* ============================================================
+   2.5D software walk — for phones whose browsers refuse WebGL.
+   Renders the flat by raycasting screen columns against the SAME
+   wall + furniture boxes the 3D scene uses (exported via
+   __exportMap), so the layout is exact. Plain Canvas 2D fillRect:
+   nothing here a browser can refuse.
+   Conventions match the 3D app: forward = (−sin yaw, −cos yaw),
+   right = (cos yaw, −sin yaw); eye 1.62 m; player disc r = .17.
+   ============================================================ */
+var MAP = {"walls":[[-0.2,2.9,-0.2,0],[2.9,3.35,-0.2,0],[3.35,5,-0.2,0],[5,6.5,-0.2,0],[6.5,7.415,-0.2,0],[-0.2,0,-0.2,0.95],[-0.2,0,0.95,2.25],[-0.2,0,2.25,3.315],[-0.2,0,6.515,6.63],[-0.2,0,9.79,10.65],[-0.2,0,10.65,12.25],[-0.2,0,12.25,13.345],[-0.2,1.1,13.145,13.345],[1.1,2.35,13.145,13.345],[2.35,3.7,13.145,13.345],[3.7,4.7,13.145,13.345],[4.7,5.5,13.145,13.345],[5.5,6.6,13.145,13.345],[6.6,7.415,13.145,13.345],[7.215,7.415,-0.2,3.62],[7.215,7.415,4.66,13.345],[2.45,2.565,0,3.2],[4.058,4.173,0,3.2],[2.565,4.065,0.705,0.795],[0,1.5,3.2,3.315],[2.32,2.75,3.2,3.315],[3.5,4.35,3.2,3.315],[5.15,7.215,3.2,3.315],[1.3,1.415,3.315,3.6],[1.3,1.415,6.02,6.69],[1.3,1.415,7.59,9.79],[1.247,1.427,3.58,4.83],[1.247,1.427,6.67,7.16],[0,1.415,6.465,6.69],[0,1.415,9.76,9.9],[2.9,7.215,6.515,6.63],[0,2.42,9.83,9.945],[3.28,5.065,9.83,9.945],[6,7.215,9.83,9.945],[3.35,3.465,10.765,13.145],[4.958,5.073,9.945,13.145],[3.465,4.965,12.395,12.485],[5.065,5.35,11.97,12.02],[6.55,7.215,11.97,12.02]],"furn":[[5.66,6.24,4.8,5.9,"living"],[4.3,5.2,4.42,6.05,"living"],[6.875,7.215,4.7,6.46,"living"],[2.74,4.1,4.94,5.86,"living"],[6.625,7.205,6.89,9.75,"kitchen"],[6.02,7.22,6.64,7.24,"kitchen"],[5.18,5.98,6.59,7.37,"kitchen"],[3.025,5.135,6.63,8.06,"kitchen"],[4.55,5.15,9.42,9.83,"kitchen"],[1.427,2.085,8.24,8.29,"pooja"],[1.427,2.085,9.75,9.8,"pooja"],[1.445,2.055,8.3,9.74,"pooja"],[1.415,2.085,8.24,9.8,"pooja"],[0.035,0.985,0.35,2.35,"bed1"],[1.325,2.375,0.065,0.615,"bed1"],[0.28,1.28,2.56,3.16,"bed1"],[2.565,3.43,0.86,1.01,"bed1"],[3.58,4.05,2.62,3.12,"bed1"],[4.09,4.965,12.245,12.395,"bed1"],[4.45,4.93,10,10.52,"bed1"],[5.17,7.17,0.67,2.17,"bed2"],[6.78,7.18,0.17,0.63,"bed2"],[6.78,7.18,2.22,2.68,"bed2"],[4.205,4.805,0.325,1.875,"bed2"],[0.175,2.225,10.675,12.225,"mbed"],[0.04,0.44,10.09,10.55,"mbed"],[0.04,0.44,12.45,12.91,"mbed"],[2.71,3.31,11.625,13.075,"mbed"],[5.99,6.61,10.01,10.63,"storage"],[6.59,7.21,10.01,10.63,"storage"],[7.165,7.215,10.7,11.94,"storage"],[5.06,5.68,12.66,13.12,"utility"],[-0.1,0.16,3.315,6.515,"balcony"],[-0.1,0.16,6.63,9.79,"balcony"],[7.415,9.05,2.58,2.7,"corridor"],[7.415,9.05,9.9,10.02,"corridor"],[9.05,9.17,2.7,5.4,"corridor"],[9.05,9.17,6.9,9.9,"corridor"],[8.69,9.03,3.04,3.66,"corridor"],[6.38,6.82,6.03,6.47,"decor"]],"rooms":[{"n":"Bedroom 1 · Study","x0":0,"x1":2.45,"z0":0,"z1":3.2},{"n":"Common toilet","x0":2.565,"x1":4.065,"z0":0,"z1":3.2},{"n":"Bedroom 2","x0":4.165,"x1":7.215,"z0":0,"z1":3.2},{"n":"Living","x0":1.415,"x1":7.215,"z0":3.2,"z1":6.63},{"n":"Kitchen & dining","x0":1.415,"x1":7.215,"z0":6.63,"z1":9.945},{"n":"Pooja","x0":1.415,"x1":2.9,"z0":8.24,"z1":9.83},{"n":"Balcony","x0":-0.2,"x1":1.3,"z0":3.315,"z1":6.515},{"n":"Balcony","x0":-0.2,"x1":1.3,"z0":6.63,"z1":9.79},{"n":"Master bedroom","x0":0,"x1":3.35,"z0":9.945,"z1":13.145},{"n":"Attached toilet","x0":3.465,"x1":4.965,"z0":9.945,"z1":12.395},{"n":"Storage","x0":5.065,"x1":7.215,"z0":9.945,"z1":11.97},{"n":"Utility","x0":5.065,"x1":7.215,"z0":12.02,"z1":13.145},{"n":"Entry corridor","x0":7.415,"x1":10.05,"z0":2.7,"z1":9.9}]};
+
+var EYE = 1.62, WALLH = 2.92, R = 0.17;
+/* per-tag render height + face colours [east/west face, north/south face] */
+var TAGS = {
+  wall:    { h:WALLH, c:['#b8ae9a','#d6cdbb'] },
+  living:  { h:0.80,  c:['#c9b691','#e2d3ae'] },
+  kitchen: { h:0.95,  c:['#96784f','#b3946a'] },
+  pooja:   { h:2.30,  c:['#5f4028','#775237'] },
+  bed1:    { h:0.62,  c:['#7c8d79','#95aa91'] },
+  bed2:    { h:0.62,  c:['#7c8d79','#95aa91'] },
+  mbed:    { h:0.62,  c:['#996a52','#b5806a'] },
+  storage: { h:1.90,  c:['#7e7565','#988e7c'] },
+  utility: { h:0.92,  c:['#a89f8e','#bfb5a2'] },
+  balcony: { h:1.10,  c:['#3f3c36','#55514a'] },
+  corridor:{ h:WALLH, c:['#b1a794','#c9c0ae'] },
+  decor:   { h:0.50,  c:['#8a7c66','#a2937c'] },
+};
+var CEIL = '#f4eee1', FLOOR = '#ddd3bd', SKY = '#c5d0cd', FOG = '#eae4d6';
+
+var boxes = [];
+MAP.walls.forEach(function(b){ boxes.push({b:b, tag:'wall'}); });
+MAP.furn.forEach(function(b){ boxes.push({b:b.slice(0,4), tag:b[4]}); });
+
+var cv = document.getElementById('view'), g = cv.getContext('2d');
+var W=0, H=0, PROJ=0;
+function fit(){
+  var cw = Math.max(1, innerWidth), ch = Math.max(1, innerHeight);
+  W = Math.min(560, cw);                       // column budget; CSS upscales
+  H = Math.round(W * ch / cw);
+  cv.width = W; cv.height = H;
+  PROJ = (W/2) / Math.tan((66/2) * Math.PI/180);   // 66° horizontal FOV
+}
+fit(); addEventListener('resize', fit);
+addEventListener('orientationchange', function(){ setTimeout(fit, 150); });
+
+var P = { x:8.45, z:4.14, yaw:Math.PI/2, pitch:0 };
+
+function collide(x,z){
+  for(var i=0;i<boxes.length;i++){
+    var b = boxes[i].b;
+    if(x+R>b[0] && x-R<b[1] && z+R>b[2] && z-R<b[3]) return true;
+  }
+  return false;
+}
+
+/* ray (unnormalised dir = forward + k·right, so t IS the perpendicular
+   distance — no fisheye correction needed) vs AABB slab test */
+function hitBox(px,pz,dx,dz,b){
+  var tmin=-1e9, tmax=1e9, axis=0, t1, t2, s;
+  if(Math.abs(dx) < 1e-9){ if(px<b[0]||px>b[1]) return null; }
+  else { t1=(b[0]-px)/dx; t2=(b[1]-px)/dx; if(t1>t2){s=t1;t1=t2;t2=s;}
+         if(t1>tmin){tmin=t1;axis=0;} if(t2<tmax)tmax=t2; }
+  if(Math.abs(dz) < 1e-9){ if(pz<b[2]||pz>b[3]) return null; }
+  else { t1=(b[2]-pz)/dz; t2=(b[3]-pz)/dz; if(t1>t2){s=t1;t1=t2;t2=s;}
+         if(t1>tmin){tmin=t1;axis=1;} if(t2<tmax)tmax=t2; }
+  if(tmax<tmin || tmax<0.02 || tmin<0.02) return null;
+  return { t:tmin, t2:tmax, axis:axis };
+}
+
+function shade(hex, k){          // toward fog colour with distance
+  var r=parseInt(hex.slice(1,3),16), gg=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  var fr=parseInt(FOG.slice(1,3),16), fg=parseInt(FOG.slice(3,5),16), fb=parseInt(FOG.slice(5,7),16);
+  r=Math.round(r+(fr-r)*k); gg=Math.round(gg+(fg-gg)*k); b=Math.round(b+(fb-b)*k);
+  return 'rgb('+r+','+gg+','+b+')';
+}
+
+function render(){
+  var fX=-Math.sin(P.yaw), fZ=-Math.cos(P.yaw), rX=Math.cos(P.yaw), rZ=-Math.sin(P.yaw);
+  var horizon = H/2 + P.pitch * PROJ * 0.75;
+  g.fillStyle = CEIL;  g.fillRect(0,0,W,Math.max(0,horizon));
+  g.fillStyle = FLOOR; g.fillRect(0,Math.max(0,horizon),W,H);
+  for(var c=0;c<W;c++){
+    var k=(c-W/2)/PROJ, dx=fX+k*rX, dz=fZ+k*rZ;
+    var tW=1e9, wHit=null, hits=[], i, hb;
+    for(i=0;i<boxes.length;i++){
+      hb = hitBox(P.x,P.z,dx,dz,boxes[i].b);
+      if(!hb) continue;
+      if(boxes[i].tag==='wall'){ if(hb.t<tW){ tW=hb.t; wHit=hb; } }
+      else { hb.tag=boxes[i].tag; hits.push(hb); }
+    }
+    var y0, y1, fog;
+    if(wHit){
+      fog = Math.min(.45, tW/34);
+      y0 = horizon - (WALLH-EYE)*PROJ/tW; y1 = horizon + EYE*PROJ/tW;
+      g.fillStyle = shade(TAGS.wall.c[wHit.axis===0?0:1], fog);
+      g.fillRect(c, y0, 1, y1-y0);
+    } else {
+      g.fillStyle = SKY;                     // out through a balcony opening
+      g.fillRect(c, 0, 1, Math.max(0,horizon));
+    }
+    hits.sort(function(a,b){ return b.t-a.t; });        // far → near
+    for(i=0;i<hits.length;i++){
+      var h2=hits[i]; if(h2.t>=tW) continue;
+      var T=TAGS[h2.tag]||TAGS.decor, hh=T.h;
+      fog = Math.min(.45, h2.t/34);
+      var yTopN = horizon + (EYE-hh)*PROJ/h2.t;         // top edge, near face
+      var yBotN = horizon + EYE*PROJ/h2.t;              // floor line, near face
+      if(hh < EYE){                                     // visible top surface
+        var tFar = Math.min(h2.t2, tW);
+        var yTopF = horizon + (EYE-hh)*PROJ/tFar;
+        g.fillStyle = shade(T.c[1], Math.min(.45,(h2.t+tFar)/2/34)*.8);
+        g.fillRect(c, yTopF, 1, Math.max(1,yTopN-yTopF));
+      }
+      g.fillStyle = shade(T.c[h2.axis===0?0:1], fog);
+      g.fillRect(c, yTopN, 1, Math.max(1,yBotN-yTopN));
+    }
+  }
+}
+
+/* ---------------- minimap ---------------- */
+var mm = document.getElementById('map'), mg = mm.getContext('2d');
+function drawMap(){
+  var s = 9.6, ox = 4, oy = 4;
+  mg.clearRect(0,0,mm.width,mm.height);
+  mg.fillStyle='rgba(18,16,12,.55)'; mg.fillRect(0,0,mm.width,mm.height);
+  boxes.forEach(function(bx){
+    var b=bx.b;
+    mg.fillStyle = bx.tag==='wall' ? '#8d8577' : 'rgba(217,164,65,.5)';
+    mg.fillRect(ox+(b[0]+.2)*s*.95, oy+(b[2]+.2)*s*.95,
+                Math.max(1,(b[1]-b[0])*s*.95), Math.max(1,(b[3]-b[2])*s*.95));
+  });
+  var px=ox+(P.x+.2)*s*.95, pz=oy+(P.z+.2)*s*.95;
+  mg.save(); mg.translate(px,pz); mg.rotate(-P.yaw);
+  mg.fillStyle='#e2903c';
+  mg.beginPath(); mg.moveTo(0,-5); mg.lineTo(3.4,4); mg.lineTo(-3.4,4); mg.closePath(); mg.fill();
+  mg.restore();
+}
+
+/* ---------------- controls: stick + look, same zones as the 3D app ------- */
+var stickEl=document.getElementById('stick'), knob=stickEl.firstElementChild;
+var STICK_R=54, DEAD=8;
+var st={ moveId:-1, lookId:-1, mx:0, mz:0, x0:0, y0:0, lx:0, ly:0 };
+function stickHome(){ return [Math.min(98, innerWidth*.24), innerHeight-118]; }
+function stickIdle(){
+  var h=stickHome();
+  stickEl.classList.add('idle');
+  stickEl.style.left=h[0]+'px'; stickEl.style.top=h[1]+'px';
+  knob.style.transform='translate(0px,0px)';
+}
+stickIdle();
+function inMoveZone(t){ return t.clientX < innerWidth*.46 && t.clientY > 110; }
+cv.addEventListener('touchstart', function(e){
+  e.preventDefault();
+  for(var i=0;i<e.changedTouches.length;i++){
+    var t=e.changedTouches[i];
+    if(st.moveId<0 && inMoveZone(t)){
+      st.moveId=t.identifier; st.x0=t.clientX; st.y0=t.clientY;
+      stickEl.classList.remove('idle');
+      stickEl.style.left=t.clientX+'px'; stickEl.style.top=t.clientY+'px';
+      knob.style.transform='translate(0px,0px)';
+    } else if(st.lookId<0){ st.lookId=t.identifier; st.lx=t.clientX; st.ly=t.clientY; }
+  }
+}, {passive:false});
+cv.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  for(var i=0;i<e.changedTouches.length;i++){
+    var t=e.changedTouches[i];
+    if(t.identifier===st.moveId){
+      var dx=t.clientX-st.x0, dy=t.clientY-st.y0, d=Math.hypot(dx,dy);
+      if(d<DEAD){ st.mx=0; st.mz=0; }
+      else { var kk=Math.min(1,(d-DEAD)/(STICK_R-DEAD))/d; st.mx=dx*kk; st.mz=-dy*kk; }
+      var cl = d>STICK_R ? STICK_R/d : 1;
+      knob.style.transform='translate('+(dx*cl)+'px,'+(dy*cl)+'px)';
+    } else if(t.identifier===st.lookId){
+      P.yaw   -= (t.clientX-st.lx)*.0045;
+      P.pitch  = Math.max(-.5, Math.min(.5, P.pitch - (t.clientY-st.ly)*.003));
+      st.lx=t.clientX; st.ly=t.clientY;
+    }
+  }
+}, {passive:false});
+function endT(e){
+  for(var i=0;i<e.changedTouches.length;i++){
+    var t=e.changedTouches[i];
+    if(t.identifier===st.moveId){ st.moveId=-1; st.mx=0; st.mz=0; stickIdle(); }
+    if(t.identifier===st.lookId) st.lookId=-1;
+  }
+}
+cv.addEventListener('touchend', endT, {passive:true});
+cv.addEventListener('touchcancel', endT, {passive:true});
+/* desktop courtesy: WASD + drag */
+var keys={};
+addEventListener('keydown', function(e){ keys[e.code]=true; });
+addEventListener('keyup',   function(e){ keys[e.code]=false; });
+var mdown=false;
+cv.addEventListener('mousedown', function(e){ mdown=true; st.lx=e.clientX; st.ly=e.clientY; });
+addEventListener('mouseup', function(){ mdown=false; });
+addEventListener('mousemove', function(e){
+  if(!mdown) return;
+  P.yaw  -= (e.clientX-st.lx)*.0045;
+  P.pitch = Math.max(-.5, Math.min(.5, P.pitch-(e.clientY-st.ly)*.003));
+  st.lx=e.clientX; st.ly=e.clientY;
+});
+
+/* ---------------- room readout + loop ---------------- */
+var roomEl=document.getElementById('room'), lastRoom='';
+function roomAt(x,z){
+  for(var i=0;i<MAP.rooms.length;i++){
+    var r=MAP.rooms[i];
+    if(x>=r.x0&&x<=r.x1&&z>=r.z0&&z<=r.z1) return r.n;
+  }
+  return 'Sashtii Nila (yam)';
+}
+var last=performance.now();
+function loop(now){
+  var dt=Math.min(.05,(now-last)/1000); last=now;
+  var mx=st.mx, mz=st.mz;
+  if(keys.KeyW||keys.ArrowUp)mz+=1; if(keys.KeyS||keys.ArrowDown)mz-=1;
+  if(keys.KeyA||keys.ArrowLeft)mx-=1; if(keys.KeyD||keys.ArrowRight)mx+=1;
+  if(mx||mz){
+    var len=Math.max(1,Math.hypot(mx,mz)); mx/=len; mz/=len;
+    var s=Math.sin(P.yaw), c=Math.cos(P.yaw), sp=2.2*dt;
+    var dx=(-s*mz+c*mx)*sp, dz=(-c*mz-s*mx)*sp;
+    if(!collide(P.x+dx,P.z)) P.x+=dx;
+    if(!collide(P.x,P.z+dz)) P.z+=dz;
+  }
+  render(); drawMap();
+  var rn=roomAt(P.x,P.z);
+  if(rn!==lastRoom){ roomEl.textContent=rn; lastRoom=rn; }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

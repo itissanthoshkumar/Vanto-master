@@ -302,9 +302,12 @@
     l.innerHTML = '<p style="letter-spacing:.08em">SOMETHING WENT WRONG LOADING THE WALKTHROUGH</p>' +
       '<div style="font-size:13px;color:#cfc8ba;max-width:300px;text-align:center;line-height:1.5">' +
       hint + ' ' + (detail||'') + '</div>' +
-      (isGL ? '<a href="fallback.html" style="display:inline-block;border-radius:999px;padding:12px 26px;' +
+      (isGL ? '<a href="walk.html" style="display:inline-block;border-radius:999px;padding:12px 26px;' +
         'font-size:14px;font-weight:600;background:#e5b356;color:#211a0d;text-decoration:none">' +
-        'Open the photo tour instead</a>' : '') +
+        'Walk in 2D instead</a>' +
+        '<a href="fallback.html" style="display:inline-block;border-radius:999px;padding:11px 22px;' +
+        'font-size:13px;font-weight:600;background:rgba(255,255,255,.14);color:#f5f1e8;' +
+        'text-decoration:none">Photo tour</a>' : '') +
       '<button onclick="location.reload()" style="border:none;border-radius:999px;padding:11px 26px;' +
       'font-size:14px;font-weight:600;background:' + (isGL ? 'rgba(255,255,255,.14);color:#f5f1e8' :
       '#e5b356;color:#211a0d') + ';cursor:pointer">Reload</button>';
@@ -391,7 +394,8 @@ renderer.domElement.addEventListener('webglcontextlost', e=>{
     n.innerHTML='Graphics gave out on this phone — reloading with lighter settings…<br><br>'+
       '<button onclick="location.reload()" style="border:none;border-radius:999px;padding:10px 22px;'+
       'font-size:13.5px;font-weight:600;background:#e5b356;color:#211a0d;cursor:pointer">Reload now</button>'+
-      '<br><br><a href="fallback.html" style="color:#d9a441;font-size:12.5px">or open the photo tour</a>';
+      '<br><br><a href="walk.html" style="color:#d9a441;font-size:12.5px">walk in 2D</a>'+
+      ' &nbsp;·&nbsp; <a href="fallback.html" style="color:#d9a441;font-size:12.5px">photo tour</a>';
     document.body.appendChild(n);
     if(GLD < 2) setTimeout(()=> location.reload(), 4000);
   }
@@ -4459,6 +4463,13 @@ window.__shot = (w=1200, h=800, q=.82)=>{
 };
 window.__tourCaps = ()=> TOUR.map((s,i)=> s.cap ?
   {i, x:s.x, z:s.z, yaw:s.yaw, t:s.cap[0], d:s.cap[1]} : null).filter(Boolean);
+/* geometry export for the no-WebGL 2.5D walk (walk.html): every collider AABB
+   with its tag, plus the room rectangles for the name readout */
+window.__exportMap = ()=> JSON.stringify({
+  walls: colliders.filter(c=>c.tag==='wall').map(c=>[+c.minX.toFixed(3),+c.maxX.toFixed(3),+c.minZ.toFixed(3),+c.maxZ.toFixed(3)]),
+  furn:  colliders.filter(c=>c.tag!=='wall').map(c=>[+c.minX.toFixed(3),+c.maxX.toFixed(3),+c.minZ.toFixed(3),+c.maxZ.toFixed(3),c.tag]),
+  rooms: ROOMS.map(r=>({n:r.n, x0:r.x0, x1:r.x1, z0:r.z0, z1:r.z1})),
+});
 
 /* ================= LOOP ================= */
 const clock = new THREE.Clock();
