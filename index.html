@@ -3735,9 +3735,18 @@ const TOUR = [
   /* 1 ENTRANCE ─────────────────────────────────────────── */
   { x:8.60, z:4.14, yaw:90,  cap:['Entrance · F-029','Tower B — two flats became one home'], dwell:2.8 },
   { x:7.30, z:4.14, yaw:90 },
-  /* 2 TV UNIT / HALL ───────────────────────────────────── */
+  /* 2 HALL ───────────────────────────────────────────────
+     Every hall leg now runs along the north spine (z ≈ 3.9) and only steps south
+     to reach a stop. Walking the old straight lines between these three stops
+     went clean through the new sofa — the seating turned 90° in the re-plan and
+     the tour did not. */
+  { x:5.80, z:3.90, yaw:120 },
+  { x:3.20, z:3.95, yaw:200 },
   { x:2.60, z:4.70, yaw:250, cap:['The hall','19\'0" × 10\'6" — seating turned to work across the long axis'], dwell:3.0 },
+  { x:3.20, z:3.95, yaw:280 },
+  { x:5.45, z:3.95, yaw:280 },
   { x:5.45, z:4.75, yaw:244, cap:['The media unit','Moved wall to wall — white lacquer, lit walnut bay, reeded teak'], dwell:3.2 },
+  { x:5.45, z:3.95, yaw:180 },
   { x:4.60, z:3.88, yaw:180, cap:['The family wall','Wall B stripped back to plaster, one photograph on it'], dwell:3.0 },
   /* 3 BEDROOM 2 (in → look → out) ──────────────────────── */
   { x:4.20, z:3.85, yaw:20 },
@@ -3777,12 +3786,14 @@ const TOUR = [
   { x:0.72, z:8.40, yaw:105, cap:['Small balcony','Amphitheatre, lawns and the Miyawaki forest'], dwell:3.0 },
   { x:1.36, z:7.36, yaw:275 },
   /* 9 MASTER BEDROOM (in → look → out) ─────────────────── */
+  { x:2.30, z:7.90, yaw:170 },     // swings east of the pooja unit's corner
   { x:2.60, z:8.60, yaw:190 },
   { x:2.85, z:9.40, yaw:180 },
   { x:2.85, z:9.89, yaw:180 },
   { x:2.60, z:10.70, yaw:125, cap:['Master bedroom','11\'0" × 10\'6" — clay accent, fluted headboard, double AC'], dwell:3.4 },
   { x:2.46, z:12.30, yaw:80,  cap:['South-west corner','Two windows, wardrobe along the east wall'], dwell:2.6 },
   /* 10 ATTACHED WASHROOM — off the bedroom, behind its door ─ */
+  { x:2.48, z:11.20, yaw:340 },    // between the bed and the wardrobe, clear of both
   { x:2.85, z:10.60, yaw:250 },
   { x:3.20, z:10.40, yaw:270 },
   { x:3.70, z:10.40, yaw:290 },
@@ -3800,8 +3811,11 @@ const TOUR = [
   { x:5.55, z:11.60, yaw:200, cap:['Utility','Open to the kitchen over a 3 ft wall'], dwell:2.8 },
   { x:5.55, z:9.89, yaw:0 },
   /* 14 BACK TO THE ENTRANCE → OVERVIEW ─────────────────── */
+  { x:5.40, z:9.20, yaw:290 },     // north of the W.B basin on wall C
   { x:2.70, z:8.80, yaw:320 },
   { x:2.66, z:6.57, yaw:355 },
+  { x:2.30, z:5.50, yaw:355 },     // west of the recliner
+  { x:2.60, z:4.30, yaw:40 },
   { x:3.20, z:4.05, yaw:70 },
   { x:6.60, z:4.14, yaw:270, cap:['Back at the door','1425 sqft, room by room — lifting to overview'], dwell:2.8 },
 ];
@@ -4221,15 +4235,29 @@ window.__qaWhat = (x,z)=>{
 
 /* every tour leg must have clear line-of-sight — a straight glide that crosses a
    wall reads as the camera "sticking" or punching through it */
+/* Tour legs must clear WALLS *and* FURNITURE. This only tested walls for a long
+   time, which is exactly how the tour ended up walking straight through the
+   sofa after the hall was re-planned and nothing flagged it: the seating turned
+   90°, the waypoints did not, and every geometry check still came back green. */
 window.__qaLegs = ()=>{
-  const bad=[];
+  const bad=[], through=[];
   for(let i=0;i<TOUR.length-1;i++){
     const a=TOUR[i], b=TOUR[i+1];
+    const caps=[a.cap&&a.cap[0], b.cap&&b.cap[0]];
     if(wallBetween(a.x,a.z,b.x,b.z))
-      bad.push({ leg:`${i}→${i+1}`, from:[a.x,a.z], to:[b.x,b.z],
-                 caps:[a.cap&&a.cap[0], b.cap&&b.cap[0]] });
+      bad.push({ leg:`${i}→${i+1}`, from:[a.x,a.z], to:[b.x,b.z], caps });
+    // sample the leg at 3 cm and collect any non-wall collider it passes through
+    const L=Math.hypot(b.x-a.x, b.z-a.z), n=Math.max(2, Math.ceil(L/.03)), tags=new Set();
+    for(let k=0;k<=n;k++){
+      const t=k/n, px=a.x+(b.x-a.x)*t, pz=a.z+(b.z-a.z)*t, r=.17;
+      for(const c of colliders)
+        if(c.tag!=='wall' && px+r>c.minX && px-r<c.maxX && pz+r>c.minZ && pz-r<c.maxZ) tags.add(c.tag);
+    }
+    if(tags.size) through.push({ leg:`${i}→${i+1}`, from:[a.x,a.z], to:[b.x,b.z],
+                                 through:[...tags].join(','), caps });
   }
-  return { legs: TOUR.length-1, crossings: bad.length, bad };
+  return { legs: TOUR.length-1, crossings: bad.length, bad,
+           furnitureHits: through.length, through };
 };
 /* drive the tour/glide state machine synthetically; samples camera against wall bands */
 window.__qaTour = (maxSecs)=>{
