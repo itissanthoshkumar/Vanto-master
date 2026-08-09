@@ -1495,14 +1495,20 @@ colliderTag='pooja';
   /* Per the GFC plan the pooja is a built-in mandir unit against the balcony-2
      wall at the south end of the dining: 0.67 m deep × 1.63 m long, open east. */
   const g = new THREE.Group(); F.add(g);
-  const x0=1.415, x1=2.085, z0=8.24, z1=9.87, h=2.30;
+  /* z1 stops 30 mm SHORT of wall C (inner face ZK1=9.83) and the walnut carcass
+     is inset 12 mm off the west wall plane (x0=1.415) — the unit used to run to
+     9.87, embedding its south panel 40 mm inside the wall with its west faces
+     coplanar with the wall's: grazing views showed depth-buffer stitching (the
+     dashed shimmer along the panel edge). Never build the carcass flush to a
+     wall face — always leave a few mm. */
+  const x0=1.415, x1=2.085, z0=8.24, z1=9.80, h=2.30;
   const mz=(z0+z1)/2, mx=(x0+x1)/2, L=z1-z0, D=x1-x0;
   // carcass: light marble-toned back panel so the niche reads bright, walnut frame
   box(g, M.cove, .05, h, L, x0+.03, h/2, mz, {cast:false});
   box(g, M.brass, .012, 1.05, L-.3, x0+.062, .95, mz, {cast:false});   // brass back-plate
-  box(g, M.walnut, D, .16, L, mx, h-.08, mz, {solid:false});
-  box(g, M.walnut, D, h, .05, mx, h/2, z0+.025, {solid:true});
-  box(g, M.walnut, D, h, .05, mx, h/2, z1-.025, {solid:true});
+  box(g, M.walnut, D-.012, .16, L, mx+.006, h-.08, mz, {solid:false});
+  box(g, M.walnut, D-.012, h, .05, mx+.006, h/2, z0+.025, {solid:true});
+  box(g, M.walnut, D-.012, h, .05, mx+.006, h/2, z1-.025, {solid:true});
   // carved jaali valance across the opening
   box(g, M.walnut, .06, .3, L, x1-.03, h-.28, mz, {cast:false});
   for(let i=0;i<11;i++) cyl(g, M.brass, .018,.018,.24, x1-.03, h-.42, z0+.16+i*.13, {rx:Math.PI/2, cast:false});
