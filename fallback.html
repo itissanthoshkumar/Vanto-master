@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sashtii Nila (yam) · Photo tour</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:#12100d; overflow:hidden;
+              font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              color:#f5f1e8; -webkit-tap-highlight-color:transparent; }
+  #stage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  #stage img { max-width:100%; max-height:100%; object-fit:contain; user-select:none;
+               -webkit-user-drag:none; }
+  #top { position:fixed; top:0; left:0; right:0; padding:14px 16px calc(30px);
+         background:linear-gradient(rgba(10,9,7,.82), rgba(10,9,7,0)); z-index:5; }
+  #top h1 { font-size:15px; letter-spacing:.12em; color:#f3ead6; }
+  #top p  { font-size:11.5px; color:#b6ac99; margin-top:2px; }
+  #cap { position:fixed; left:0; right:0; bottom:0; z-index:5;
+         padding:26px 18px calc(96px + env(safe-area-inset-bottom,0px));
+         background:linear-gradient(rgba(10,9,7,0), rgba(10,9,7,.88) 45%);
+         text-align:center; }
+  #cap b { display:block; font-size:18px; color:#f3ead6; font-family:Georgia, serif; }
+  #cap span { display:block; font-size:13px; color:#cfc5b2; margin-top:4px; line-height:1.45; }
+  #bar { position:fixed; left:0; right:0; z-index:6; display:flex; gap:10px; align-items:center;
+         justify-content:center; bottom:calc(16px + env(safe-area-inset-bottom,0px)); }
+  #bar button { border:1px solid rgba(255,255,255,.18); background:rgba(30,27,22,.85);
+                color:#f5f1e8; border-radius:999px; min-width:46px; min-height:42px;
+                font-size:16px; cursor:pointer; }
+  #bar #count { font-size:12.5px; color:#b6ac99; min-width:52px; text-align:center; }
+  #dots { position:fixed; top:calc(12px + env(safe-area-inset-top,0px)); right:14px; z-index:6;
+          font-size:11px; color:#8f8674; letter-spacing:.14em; }
+  .edge { position:fixed; top:0; bottom:0; width:34%; z-index:4; }
+  #prevZone { left:0; } #nextZone { right:0; }
+  #note { position:fixed; left:50%; transform:translateX(-50%); z-index:6;
+          bottom:calc(66px + env(safe-area-inset-bottom,0px));
+          font-size:10.5px; color:#79705e; }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>SASHTII NILA (YAM) — PHOTO TOUR</h1>
+  <p>B-1428 &amp; 1429 · Trifecta Vanto · 1425 sqft · Tower B</p>
+</div>
+<div id="stage"><img id="pic" alt="" decoding="async"></div>
+<div id="cap"><b id="capT"></b><span id="capD"></span></div>
+<div class="edge" id="prevZone"></div>
+<div class="edge" id="nextZone"></div>
+<div id="bar">
+  <button id="prev" aria-label="Previous">‹</button>
+  <span id="count"></span>
+  <button id="next" aria-label="Next">›</button>
+</div>
+<div id="note">swipe or tap the sides · <a href="index.html" style="color:#d9a441">try the 3D tour</a></div>
+<script>
+/* Zero-WebGL fallback: 16 stills baked from the real 3D scene, one per tour
+   stop, same captions. Served when a phone cannot give the walkthrough a GL
+   context. Plain img + buttons — nothing here a browser can refuse. */
+var STOPS = [
+  ["Entrance · F-029","Tower B — two flats became one home"],
+  ["The hall","19'0\" × 10'6\" — seating turned to work across the long axis"],
+  ["The media unit","Moved wall to wall — white lacquer, lit walnut bay, reeded teak"],
+  ["The family wall","Wall B stripped back to plaster, one photograph on it"],
+  ["Bedroom","10'0\" × 10'6\" — fluted headboard, sage accent, split AC"],
+  ["Toilet · 5'0\" × 8'0\"","Wall-hung WC on the ledge, shower, counter basin"],
+  ["Study · Bedroom 1","8'0\" × 10'6\" — extra 1-5A and 1-15A points"],
+  ["Main balcony · 14 floors up","West over the tennis court, the lake and the clubhouse"],
+  ["Pooja unit","Mandir built against the balcony wall, open to the dining"],
+  ["Small balcony","Amphitheatre, lawns and the Miyawaki forest"],
+  ["Master bedroom","11'0\" × 10'6\" — clay accent, fluted headboard, double AC"],
+  ["Attached washroom","Off the bedroom — basin in the corner, WC on the south ledge"],
+  ["Kitchen","19'0\" × 10'6\" — one way in, the arch by the pooja"],
+  ["The island","Against the wall beside the fridge — breakfast overhang, three stools"],
+  ["Storage","Glazed full-height unit, washer and dishwasher"],
+  ["Utility","Open to the kitchen over a 3 ft wall"]
+];
+var i = 0, pic = document.getElementById('pic');
+function src(n){ return 'stills/stop-' + String(n).padStart(2,'0') + '.jpg'; }
+function show(n){
+  i = (n + STOPS.length) % STOPS.length;
+  pic.src = src(i);
+  pic.alt = STOPS[i][0];
+  document.getElementById('capT').textContent = STOPS[i][0];
+  document.getElementById('capD').textContent = STOPS[i][1];
+  document.getElementById('count').textContent = (i+1) + ' / ' + STOPS.length;
+  var pre = new Image(); pre.src = src((i+1) % STOPS.length);   // prefetch the next
+}
+document.getElementById('prev').onclick = function(){ show(i-1); };
+document.getElementById('next').onclick = function(){ show(i+1); };
+document.getElementById('prevZone').onclick = function(){ show(i-1); };
+document.getElementById('nextZone').onclick = function(){ show(i+1); };
+addEventListener('keydown', function(e){
+  if(e.key==='ArrowLeft') show(i-1);
+  if(e.key==='ArrowRight'||e.key===' ') show(i+1);
+});
+var tx=null;
+addEventListener('touchstart', function(e){ tx = e.changedTouches[0].clientX; }, {passive:true});
+addEventListener('touchend', function(e){
+  if(tx===null) return;
+  var dx = e.changedTouches[0].clientX - tx; tx = null;
+  if(Math.abs(dx) > 48) show(dx < 0 ? i+1 : i-1);
+}, {passive:true});
+show(0);
+</script>
+</body>
+</html>

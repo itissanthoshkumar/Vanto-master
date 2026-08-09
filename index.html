@@ -302,8 +302,12 @@
     l.innerHTML = '<p style="letter-spacing:.08em">SOMETHING WENT WRONG LOADING THE WALKTHROUGH</p>' +
       '<div style="font-size:13px;color:#cfc8ba;max-width:300px;text-align:center;line-height:1.5">' +
       hint + ' ' + (detail||'') + '</div>' +
+      (isGL ? '<a href="fallback.html" style="display:inline-block;border-radius:999px;padding:12px 26px;' +
+        'font-size:14px;font-weight:600;background:#e5b356;color:#211a0d;text-decoration:none">' +
+        'Open the photo tour instead</a>' : '') +
       '<button onclick="location.reload()" style="border:none;border-radius:999px;padding:11px 26px;' +
-      'font-size:14px;font-weight:600;background:#e5b356;color:#211a0d;cursor:pointer">Reload</button>';
+      'font-size:14px;font-weight:600;background:' + (isGL ? 'rgba(255,255,255,.14);color:#f5f1e8' :
+      '#e5b356;color:#211a0d') + ';cursor:pointer">Reload</button>';
   }
   /* capture:true matters — a failed <script>/module fetch fires 'error' on the
      element and never bubbles, so only the capture phase sees it */
@@ -386,7 +390,8 @@ renderer.domElement.addEventListener('webglcontextlost', e=>{
       'padding:18px 22px;font-size:13.5px;color:#f5f1e8;text-align:center;max-width:280px;line-height:1.5';
     n.innerHTML='Graphics gave out on this phone — reloading with lighter settings…<br><br>'+
       '<button onclick="location.reload()" style="border:none;border-radius:999px;padding:10px 22px;'+
-      'font-size:13.5px;font-weight:600;background:#e5b356;color:#211a0d;cursor:pointer">Reload now</button>';
+      'font-size:13.5px;font-weight:600;background:#e5b356;color:#211a0d;cursor:pointer">Reload now</button>'+
+      '<br><br><a href="fallback.html" style="color:#d9a441;font-size:12.5px">or open the photo tour</a>';
     document.body.appendChild(n);
     if(GLD < 2) setTimeout(()=> location.reload(), 4000);
   }
@@ -4435,6 +4440,25 @@ window.__touchState = ()=> ({ mx:+touch.mx.toFixed(3), mz:+touch.mz.toFixed(3),
   knob:stickEl.firstElementChild.style.transform, stick:stickEl.style.display });
 window.__stepOnce = dt => walkStep(dt);
 window.__tour = startTour;
+/* on-demand still capture — renders one frame synchronously at the given size,
+   so it works even in a hidden tab where rAF never runs. Used to bake the
+   no-WebGL photo-tour fallback. */
+window.__shot = (w=1200, h=800, q=.82)=>{
+  const pr = renderer.getPixelRatio(), sz = new THREE.Vector2();
+  renderer.getSize(sz);
+  const asp = camera.aspect;
+  renderer.setPixelRatio(1); renderer.setSize(w, h, false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  camera.position.set(walk.x, EYE, walk.z);
+  camera.quaternion.setFromEuler(new THREE.Euler(walk.pitch, walk.yaw, 0, 'YXZ'));
+  renderer.render(scene, camera);
+  window.__lastShot = renderer.domElement.toDataURL('image/jpeg', q);
+  renderer.setPixelRatio(pr); renderer.setSize(sz.x, sz.y, false);
+  camera.aspect = asp; camera.updateProjectionMatrix();
+  return window.__lastShot.length;
+};
+window.__tourCaps = ()=> TOUR.map((s,i)=> s.cap ?
+  {i, x:s.x, z:s.z, yaw:s.yaw, t:s.cap[0], d:s.cap[1]} : null).filter(Boolean);
 
 /* ================= LOOP ================= */
 const clock = new THREE.Clock();
