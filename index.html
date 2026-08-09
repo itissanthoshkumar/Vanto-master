@@ -77,6 +77,8 @@
 
   /* ---------- minimap ---------- */
   #mapWrap { position:fixed; right:16px; bottom:16px; z-index:20; padding:10px 12px 12px; }
+  #roomsBtn { display:none; }   /* phones only — the media query overrides */
+  #roomsBtn.off { display:none !important; }   /* JS hides it during intro/tour */
   #mapWrap .mtitle { display:flex; justify-content:space-between; font-size:10px; letter-spacing:.22em; color:#9a917f; margin-bottom:7px; }
   #mapWrap .mtitle b { color:#d9a441; font-weight:700; }
   #minimap { display:block; border-radius:8px; }
@@ -163,7 +165,23 @@
     #intro .btns { flex-direction:column; }
     #intro .btns .tbtn { width:100%; min-height:46px; font-size:14px; }
     #hint { display:none; }
-    #mapWrap { display:none; }
+    /* the floor map becomes a bottom sheet, summoned by the Rooms button —
+       hiding it outright made overview a dead end: the intro promises
+       "click any room on the floor map" and both map behaviours (teleport,
+       room cutaway) lived only on that canvas */
+    #mapWrap {
+      left:0; right:0; bottom:0; top:auto; border-radius:18px 18px 0 0;
+      padding:10px 0 calc(14px + env(safe-area-inset-bottom,0px));
+      display:flex; flex-direction:column; align-items:center;
+      transform:translateY(105%); transition:transform .28s ease; z-index:40;
+    }
+    #mapWrap.open { transform:translateY(0); }
+    #mapWrap::before { content:''; width:38px; height:4px; border-radius:2px;
+                       background:rgba(255,255,255,.28); margin-bottom:8px; }
+    #mapWrap .mtitle { width:auto; gap:14px; }
+    #roomsBtn { display:block; position:fixed; right:14px;
+                bottom:calc(16px + env(safe-area-inset-bottom,0px)); z-index:30;
+                padding:12px 20px; min-height:44px; }
     #roomCard { display:none; }                       /* labels already name the room */
     #tourCard { width:calc(100vw - 28px); padding:11px 14px;
                 bottom:calc(128px + env(safe-area-inset-bottom,0px)); }
@@ -245,6 +263,7 @@
   <div class="mtitle"><span>FLOOR MAP</span><b id="mapMode">OVERVIEW</b></div>
   <canvas id="minimap"></canvas>
 </div>
+<button id="roomsBtn" class="tbtn gold">Rooms</button>
 
 <div id="intro">
   <div class="card">
@@ -266,8 +285,42 @@
   <div class="bar"><i></i></div>
 </div>
 
+<script>
+/* Boot watchdog — a classic script, so it runs even when the module below dies.
+   A failed module (bad fetch, parse error, TDZ) is SILENT: no console output,
+   no error UI, just an eternal loading bar. The module sets __vantoBooted as
+   its last statement; if that hasn't happened in 12 s, or a script error fires
+   first, swap the bar for a message a person can act on. */
+(function(){
+  function bootFail(detail){
+    if(window.__vantoBooted) return;
+    var l = document.getElementById('loading');
+    if(!l) return;
+    l.innerHTML = '<p style="letter-spacing:.08em">SOMETHING WENT WRONG LOADING THE WALKTHROUGH</p>' +
+      '<div style="font-size:13px;color:#cfc8ba;max-width:300px;text-align:center;line-height:1.5">' +
+      'Check the connection and pull to refresh. ' + (detail||'') + '</div>' +
+      '<button onclick="location.reload()" style="border:none;border-radius:999px;padding:11px 26px;' +
+      'font-size:14px;font-weight:600;background:#e5b356;color:#211a0d;cursor:pointer">Reload</button>';
+  }
+  /* capture:true matters — a failed <script>/module fetch fires 'error' on the
+     element and never bubbles, so only the capture phase sees it */
+  window.addEventListener('error', function(e){
+    /* only scripts are fatal — a missing image (family.jpg has a linen-mount
+       fallback) also lands here in the capture phase and must not trip this */
+    if(!e.message && !(e.target && e.target.tagName === 'SCRIPT')) return;
+    bootFail(e.message ? '<br><br><span style="opacity:.6;font-size:11px">' +
+      String(e.message).replace(/</g,'&lt;').slice(0,120) + '</span>' : '');
+  }, true);
+  setTimeout(function(){ bootFail(''); }, 12000);
+})();
+</script>
+
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+/* Vendored copy of three@0.160.1 — no CDN at runtime. On mobile data or a
+   captive-portal Wi-Fi the jsdelivr fetch used to fail silently and the page
+   sat on the loading bar forever. Now the only network dependency is the page
+   itself. */
+import * as THREE from './three.module.min.js';
 
 /* ============================================================
    B-1428 & 1429 · TRIFECTA VANTO · interactive 3D walkthrough
@@ -289,6 +342,24 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.06;
 app.appendChild(renderer.domElement);
+
+/* Phones reclaim the GL context under memory pressure; without these handlers
+   that is a permanent black canvas with no message. preventDefault on loss is
+   what makes the browser willing to hand the context back; on restore, three
+   recompiles its own GL state but our render targets (PMREM env, shadow maps)
+   are gone — a reload is the honest fix and takes a second. */
+renderer.domElement.addEventListener('webglcontextlost', e=>{
+  e.preventDefault();
+  let n = document.getElementById('glLost');
+  if(!n){
+    n = document.createElement('div'); n.id='glLost'; n.className='glass';
+    n.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;'+
+      'padding:18px 22px;font-size:13.5px;color:#f5f1e8;text-align:center;max-width:280px;line-height:1.5';
+    n.textContent='Graphics paused by the phone — restoring…';
+    document.body.appendChild(n);
+  }
+});
+renderer.domElement.addEventListener('webglcontextrestored', ()=> location.reload());
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.05, 2600);
@@ -3619,6 +3690,17 @@ renderer.domElement.addEventListener('wheel', e=>{
    wherever you actually press inside the zone.
    Overview: one finger orbits, two pinch to zoom. */
 const stickEl = $('#stick'), stickKnob = stickEl.firstElementChild;
+const roomsBtn = $('#roomsBtn'), mapWrapEl = $('#mapWrap');
+/* The Rooms button summons the floor map as a bottom sheet on phones. The CSS
+   media query owns WHERE it shows; this only owns WHEN (never during the intro
+   or while the tour is driving). stickIdle already runs at every one of those
+   transitions, so visibility rides along with it. */
+function roomsUI(){
+  const ok = !state.intro && !tour.on;
+  roomsBtn.classList.toggle('off', !ok);
+  if(!ok) mapWrapEl.classList.remove('open');
+}
+roomsBtn.onclick = ()=> mapWrapEl.classList.toggle('open');
 /* coarse pointer OR a real touch digitiser — covers phones, tablets and touch
    laptops. ?touch forces it on for testing from a desktop browser. */
 const IS_TOUCH = matchMedia('(pointer:coarse)').matches
@@ -3627,6 +3709,7 @@ const IS_TOUCH = matchMedia('(pointer:coarse)').matches
 const STICK_R = 54, STICK_DEAD = 8;
 function stickHome(){ return [Math.min(98, innerWidth*.24), innerHeight - 118]; }
 function stickIdle(){
+  roomsUI();
   if(!IS_TOUCH || state.mode!=='walk' || state.intro || tour.on){ stickEl.style.display='none'; return; }
   const [hx,hy] = stickHome();
   stickEl.style.display='block'; stickEl.classList.add('idle');
@@ -3939,8 +4022,10 @@ function startTour(fromStop=0){
   setTimeout(()=>{
     const s=TOUR[fromStop];
     Object.assign(walk,{x:s.x, z:s.z, yaw:s.yaw*D2R, pitch:-.02});
-    setMode('walk', true);
+    /* tour.on must be true BEFORE setMode — setMode calls stickIdle, and with
+       tour.on still false the touch stick popped back up mid-tour */
     tour.on=true; tour.i=fromStop; tour.paused=false;
+    setMode('walk', true);
     $('#vpSpeed').textContent = (tour.speed%1?tour.speed:tour.speed+'')+'\u00d7';
     clock2.elapsed = elapsedAtStop(fromStop);
     $('#tourBtn').textContent='■ Stop tour'; $('#tourBtn').classList.add('on');
@@ -3991,6 +4076,7 @@ mm.addEventListener('click', e=>{
   const wz = ((e.clientY-r.top)-9)/mscale - .2;
   const room = roomAt(wx,wz);
   if(!room) return;
+  mapWrapEl.classList.remove('open');       // picking a room dismisses the sheet
   stopTour(false);
   /* In OVERVIEW, clicking a room re-frames the dollhouse on that room instead of
      dropping you into it — the orbit target moves to the room's centre and the
@@ -4008,10 +4094,10 @@ mm.addEventListener('click', e=>{
   const a = ROOM_ANCHOR[key] || [wx,wz,0];
   fadeTeleport(a[0],a[1],a[2]);
 });
-/* double-click the overview to drop in at that spot */
-renderer.domElement.addEventListener('dblclick', e=>{
+/* double-click (or double-tap) the overview to drop in at that spot */
+function dropAt(cx, cy){
   if(state.mode!=='overview' || state.intro) return;
-  const ndc = new THREE.Vector2((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
+  const ndc = new THREE.Vector2((cx/innerWidth)*2-1, -(cy/innerHeight)*2+1);
   const rc = new THREE.Raycaster(); rc.setFromCamera(ndc, camera);
   const t = -rc.ray.origin.y / rc.ray.direction.y;
   if(t<=0) return;
@@ -4023,7 +4109,21 @@ renderer.domElement.addEventListener('dblclick', e=>{
     Object.assign(walk,{x:p.x, z:p.z, yaw:yp.yaw, pitch:0});
     setMode('walk');
   }
-});
+}
+renderer.domElement.addEventListener('dblclick', e=> dropAt(e.clientX, e.clientY));
+/* Chrome on Android does not reliably synthesise dblclick from taps on a
+   touch-action:none canvas, so detect the double-tap ourselves: two touchends
+   within 320 ms and 30 px, with no finger left down (rules out pinch ends). */
+let lastTap = { t:0, x:0, y:0 };
+renderer.domElement.addEventListener('touchend', e=>{
+  if(state.mode!=='overview' || state.intro) return;
+  if(e.touches.length || e.changedTouches.length!==1) return;
+  const t = e.changedTouches[0], now = performance.now();
+  if(now-lastTap.t < 320 && Math.hypot(t.clientX-lastTap.x, t.clientY-lastTap.y) < 30){
+    lastTap.t = 0;
+    dropAt(t.clientX, t.clientY);
+  } else lastTap = { t:now, x:t.clientX, y:t.clientY };
+}, {passive:true});
 
 /* walk movement — one simulation step (also driven directly by QA hooks) */
 function walkStep(dt){
@@ -4441,6 +4541,10 @@ function fitCamera(){ const [w,h] = viewportWH(); fitFov(); renderer.setSize(w,h
 fitCamera();
 addEventListener('resize', fitCamera);
 addEventListener('orientationchange', ()=> setTimeout(fitCamera, 150));
+
+/* Last statement on purpose: reaching here proves the whole module parsed and
+   ran, which is what the boot watchdog above is waiting to hear. */
+window.__vantoBooted = true;
 </script>
 </body>
 </html>
