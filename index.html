@@ -297,7 +297,7 @@
     var l = document.getElementById('loading');
     if(!l) return;
     var hint = isGL
-      ? 'The phone refused a graphics (WebGL) context — usually temporary. Close other tabs, take the phone off battery saver, and reload.'
+      ? 'The phone refused a graphics (WebGL) context. If one reload doesn’t fix it, reloading again won’t either — close ALL browser tabs, then force-stop the browser (long-press its icon → App info → Force stop) and reopen. Battery saver can also block graphics.'
       : 'Check the connection and pull to refresh.';
     l.innerHTML = '<p style="letter-spacing:.08em">SOMETHING WENT WRONG LOADING THE WALKTHROUGH</p>' +
       '<div style="font-size:13px;color:#cfc8ba;max-width:300px;text-align:center;line-height:1.5">' +
