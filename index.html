@@ -292,13 +292,16 @@
    its last statement; if that hasn't happened in 12 s, or a script error fires
    first, swap the bar for a message a person can act on. */
 (function(){
-  function bootFail(detail){
+  function bootFail(detail, isGL){
     if(window.__vantoBooted) return;
     var l = document.getElementById('loading');
     if(!l) return;
+    var hint = isGL
+      ? 'The phone refused a graphics (WebGL) context — usually temporary. Close other tabs, take the phone off battery saver, and reload.'
+      : 'Check the connection and pull to refresh.';
     l.innerHTML = '<p style="letter-spacing:.08em">SOMETHING WENT WRONG LOADING THE WALKTHROUGH</p>' +
       '<div style="font-size:13px;color:#cfc8ba;max-width:300px;text-align:center;line-height:1.5">' +
-      'Check the connection and pull to refresh. ' + (detail||'') + '</div>' +
+      hint + ' ' + (detail||'') + '</div>' +
       '<button onclick="location.reload()" style="border:none;border-radius:999px;padding:11px 26px;' +
       'font-size:14px;font-weight:600;background:#e5b356;color:#211a0d;cursor:pointer">Reload</button>';
   }
@@ -309,7 +312,8 @@
        fallback) also lands here in the capture phase and must not trip this */
     if(!e.message && !(e.target && e.target.tagName === 'SCRIPT')) return;
     bootFail(e.message ? '<br><br><span style="opacity:.6;font-size:11px">' +
-      String(e.message).replace(/</g,'&lt;').slice(0,120) + '</span>' : '');
+      String(e.message).replace(/</g,'&lt;').slice(0,120) + '</span>' : '',
+      /WebGL/i.test(e.message || ''));
   }, true);
   setTimeout(function(){ bootFail(''); }, 12000);
 })();
@@ -333,7 +337,22 @@ const $ = s => document.querySelector(s);
 const app = $('#app');
 
 /* ---------------- renderer / scene ---------------- */
-const renderer = new THREE.WebGLRenderer({ antialias:true });
+/* Seen in the field (Android Chrome via the watchdog): "Error creating WebGL
+   context" on the FIRST attempt — a crashed GPU process, battery saver, or too
+   many WebGL tabs. Don't die on the first refusal: retry with progressively
+   humbler settings before surrendering to the watchdog. */
+const renderer = (()=>{
+  const attempts = [
+    { antialias:true },
+    { antialias:false },
+    { antialias:false, powerPreference:'default', failIfMajorPerformanceCaveat:false },
+  ];
+  let lastErr;
+  for(const o of attempts){
+    try { return new THREE.WebGLRenderer(o); } catch(e){ lastErr = e; }
+  }
+  throw lastErr;
+})();
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
